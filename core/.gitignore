@@ -1,0 +1,9 @@
+.cache/
+.vscode/
+build/
+constr/
+user/
+prj/
+sim/
+*.vcd 
+*.view

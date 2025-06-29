@@ -1,0 +1,534 @@
+{
+  "creator": "Yosys 0.48 (git sha1 aaa5347494801e9e3870b31387da59da24233f76, clang++ 18.1.2-wasi-sdk -O3)",
+  "modules": {
+    "Reg": {
+      "attributes": {
+        "dynports": "00000000000000000000000000000001",
+        "cells_not_processed": "00000000000000000000000000000001",
+        "src": "{workspace}/core/vsrc/Reg.v:2.1-14.10"
+      },
+      "parameter_default_values": {
+        "RESET_VAL": "00000000000000000000000000000000",
+        "WIDTH": "00000000000000000000000000000001"
+      },
+      "ports": {
+        "clk": {
+          "direction": "input",
+          "bits": [ 2 ]
+        },
+        "rst": {
+          "direction": "input",
+          "bits": [ 3 ]
+        },
+        "din": {
+          "direction": "input",
+          "bits": [ 4 ]
+        },
+        "dout": {
+          "direction": "output",
+          "bits": [ 5 ]
+        },
+        "wen": {
+          "direction": "input",
+          "bits": [ 6 ]
+        }
+      },
+      "cells": {
+        "$procdff$7": {
+          "hide_name": 1,
+          "type": "$dff",
+          "parameters": {
+            "CLK_POLARITY": "1",
+            "WIDTH": "00000000000000000000000000000001"
+          },
+          "attributes": {
+            "src": "{workspace}/core/vsrc/Reg.v:9.3-12.6"
+          },
+          "port_directions": {
+            "CLK": "input",
+            "D": "input",
+            "Q": "output"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 7 ],
+            "Q": [ 5 ]
+          }
+        },
+        "$procmux$2": {
+          "hide_name": 1,
+          "type": "$mux",
+          "parameters": {
+            "WIDTH": "00000000000000000000000000000001"
+          },
+          "attributes": {
+            "src": "{workspace}/core/vsrc/Reg.v:11.14-11.17|{workspace}/core/vsrc/Reg.v:11.10-11.31"
+          },
+          "port_directions": {
+            "A": "input",
+            "B": "input",
+            "S": "input",
+            "Y": "output"
+          },
+          "connections": {
+            "A": [ 5 ],
+            "B": [ 4 ],
+            "S": [ 6 ],
+            "Y": [ 8 ]
+          }
+        },
+        "$procmux$5": {
+          "hide_name": 1,
+          "type": "$mux",
+          "parameters": {
+            "WIDTH": "00000000000000000000000000000001"
+          },
+          "attributes": {
+            "full_case": "00000000000000000000000000000001",
+            "src": "{workspace}/core/vsrc/Reg.v:10.9-10.12|{workspace}/core/vsrc/Reg.v:10.5-11.31"
+          },
+          "port_directions": {
+            "A": "input",
+            "B": "input",
+            "S": "input",
+            "Y": "output"
+          },
+          "connections": {
+            "A": [ 8 ],
+            "B": [ "0" ],
+            "S": [ 3 ],
+            "Y": [ 7 ]
+          }
+        }
+      },
+      "netnames": {
+        "$0\\dout[0:0]": {
+          "hide_name": 1,
+          "bits": [ 7 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/Reg.v:9.3-12.6"
+          }
+        },
+        "$procmux$2_Y": {
+          "hide_name": 1,
+          "bits": [ 8 ],
+          "attributes": {
+          }
+        },
+        "$procmux$3_CMP": {
+          "hide_name": 1,
+          "bits": [ 6 ],
+          "attributes": {
+          }
+        },
+        "$procmux$5_Y": {
+          "hide_name": 1,
+          "bits": [ 7 ],
+          "attributes": {
+          }
+        },
+        "$procmux$6_CMP": {
+          "hide_name": 1,
+          "bits": [ 3 ],
+          "attributes": {
+          }
+        },
+        "clk": {
+          "hide_name": 0,
+          "bits": [ 2 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/Reg.v:3.9-3.12"
+          }
+        },
+        "din": {
+          "hide_name": 0,
+          "bits": [ 4 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/Reg.v:5.21-5.24"
+          }
+        },
+        "dout": {
+          "hide_name": 0,
+          "bits": [ 5 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/Reg.v:6.26-6.30"
+          }
+        },
+        "rst": {
+          "hide_name": 0,
+          "bits": [ 3 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/Reg.v:4.9-4.12"
+          }
+        },
+        "wen": {
+          "hide_name": 0,
+          "bits": [ 6 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/Reg.v:7.9-7.12"
+          }
+        }
+      }
+    },
+    "buffer_D_E_data": {
+      "attributes": {
+        "cells_not_processed": "00000000000000000000000000000001",
+        "src": "{workspace}/core/vsrc/buffer_ctrl.v:2.1-70.10"
+      },
+      "ports": {
+        "clk": {
+          "direction": "input",
+          "bits": [ 2 ]
+        },
+        "rst": {
+          "direction": "input",
+          "bits": [ 3 ]
+        },
+        "RegWrite_D": {
+          "direction": "input",
+          "bits": [ 4 ]
+        },
+        "ResultSrc_D": {
+          "direction": "input",
+          "bits": [ 5 ]
+        },
+        "MemWrite_D": {
+          "direction": "input",
+          "bits": [ 6, 7 ]
+        },
+        "Jump_D": {
+          "direction": "input",
+          "bits": [ 8 ]
+        },
+        "Branch_D": {
+          "direction": "input",
+          "bits": [ 9 ]
+        },
+        "ALUControl_D": {
+          "direction": "input",
+          "bits": [ 10, 11, 12, 13 ]
+        },
+        "ALUSrc_D": {
+          "direction": "input",
+          "bits": [ 14 ]
+        },
+        "RegWrite_E": {
+          "direction": "output",
+          "bits": [ 15 ]
+        },
+        "ResultSrc_E": {
+          "direction": "output",
+          "bits": [ 16 ]
+        },
+        "MemWrite_E": {
+          "direction": "output",
+          "bits": [ 17, 18 ]
+        },
+        "Jump_E": {
+          "direction": "output",
+          "bits": [ 19 ]
+        },
+        "Branch_E": {
+          "direction": "output",
+          "bits": [ 20 ]
+        },
+        "ALUControl_E": {
+          "direction": "output",
+          "bits": [ 21, 22, 23, 24 ]
+        },
+        "ALUSrc_E": {
+          "direction": "output",
+          "bits": [ 25 ]
+        }
+      },
+      "cells": {
+        "reg_ALUControl": {
+          "hide_name": 0,
+          "type": "Reg",
+          "parameters": {
+            "$1": "00000000000000000000000000000100",
+            "$2": "00000000000000000000000000000000"
+          },
+          "attributes": {
+            "module_not_derived": "00000000000000000000000000000001",
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:56.15-62.10"
+          },
+          "port_directions": {
+            "clk": "input",
+            "din": "input",
+            "dout": "output",
+            "rst": "input",
+            "wen": "input"
+          },
+          "connections": {
+            "clk": [ 2 ],
+            "din": [ 10, 11, 12, 13 ],
+            "dout": [ 21, 22, 23, 24 ],
+            "rst": [ 3 ],
+            "wen": [ "1" ]
+          }
+        },
+        "reg_ALUSrc": {
+          "hide_name": 0,
+          "type": "Reg",
+          "parameters": {
+          },
+          "attributes": {
+            "module_not_derived": "00000000000000000000000000000001",
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:63.9-69.10"
+          },
+          "port_directions": {
+            "clk": "input",
+            "din": "input",
+            "dout": "output",
+            "rst": "input",
+            "wen": "input"
+          },
+          "connections": {
+            "clk": [ 2 ],
+            "din": [ 14 ],
+            "dout": [ 25 ],
+            "rst": [ 3 ],
+            "wen": [ "1" ]
+          }
+        },
+        "reg_Branch": {
+          "hide_name": 0,
+          "type": "Reg",
+          "parameters": {
+          },
+          "attributes": {
+            "module_not_derived": "00000000000000000000000000000001",
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:49.9-55.10"
+          },
+          "port_directions": {
+            "clk": "input",
+            "din": "input",
+            "dout": "output",
+            "rst": "input",
+            "wen": "input"
+          },
+          "connections": {
+            "clk": [ 2 ],
+            "din": [ 9 ],
+            "dout": [ 20 ],
+            "rst": [ 3 ],
+            "wen": [ "1" ]
+          }
+        },
+        "reg_Jump": {
+          "hide_name": 0,
+          "type": "Reg",
+          "parameters": {
+          },
+          "attributes": {
+            "module_not_derived": "00000000000000000000000000000001",
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:42.9-48.10"
+          },
+          "port_directions": {
+            "clk": "input",
+            "din": "input",
+            "dout": "output",
+            "rst": "input",
+            "wen": "input"
+          },
+          "connections": {
+            "clk": [ 2 ],
+            "din": [ 8 ],
+            "dout": [ 19 ],
+            "rst": [ 3 ],
+            "wen": [ "1" ]
+          }
+        },
+        "reg_MemWrite": {
+          "hide_name": 0,
+          "type": "Reg",
+          "parameters": {
+            "$1": "00000000000000000000000000000010",
+            "$2": "00000000000000000000000000000000"
+          },
+          "attributes": {
+            "module_not_derived": "00000000000000000000000000000001",
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:35.16-41.10"
+          },
+          "port_directions": {
+            "clk": "input",
+            "din": "input",
+            "dout": "output",
+            "rst": "input",
+            "wen": "input"
+          },
+          "connections": {
+            "clk": [ 2 ],
+            "din": [ 6, 7 ],
+            "dout": [ 17, 18 ],
+            "rst": [ 3 ],
+            "wen": [ "1" ]
+          }
+        },
+        "reg_RegWrite": {
+          "hide_name": 0,
+          "type": "Reg",
+          "parameters": {
+          },
+          "attributes": {
+            "module_not_derived": "00000000000000000000000000000001",
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:21.6-27.10"
+          },
+          "port_directions": {
+            "clk": "input",
+            "din": "input",
+            "dout": "output",
+            "rst": "input",
+            "wen": "input"
+          },
+          "connections": {
+            "clk": [ 2 ],
+            "din": [ 4 ],
+            "dout": [ 15 ],
+            "rst": [ 3 ],
+            "wen": [ "1" ]
+          }
+        },
+        "reg_ResultSrc": {
+          "hide_name": 0,
+          "type": "Reg",
+          "parameters": {
+          },
+          "attributes": {
+            "module_not_derived": "00000000000000000000000000000001",
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:28.9-34.10"
+          },
+          "port_directions": {
+            "clk": "input",
+            "din": "input",
+            "dout": "output",
+            "rst": "input",
+            "wen": "input"
+          },
+          "connections": {
+            "clk": [ 2 ],
+            "din": [ 5 ],
+            "dout": [ 16 ],
+            "rst": [ 3 ],
+            "wen": [ "1" ]
+          }
+        }
+      },
+      "netnames": {
+        "ALUControl_D": {
+          "hide_name": 0,
+          "bits": [ 10, 11, 12, 13 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:10.16-10.28"
+          }
+        },
+        "ALUControl_E": {
+          "hide_name": 0,
+          "bits": [ 21, 22, 23, 24 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:17.17-17.29"
+          }
+        },
+        "ALUSrc_D": {
+          "hide_name": 0,
+          "bits": [ 14 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:11.11-11.19"
+          }
+        },
+        "ALUSrc_E": {
+          "hide_name": 0,
+          "bits": [ 25 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:18.12-18.20"
+          }
+        },
+        "Branch_D": {
+          "hide_name": 0,
+          "bits": [ 9 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:9.11-9.19"
+          }
+        },
+        "Branch_E": {
+          "hide_name": 0,
+          "bits": [ 20 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:16.12-16.20"
+          }
+        },
+        "Jump_D": {
+          "hide_name": 0,
+          "bits": [ 8 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:8.11-8.17"
+          }
+        },
+        "Jump_E": {
+          "hide_name": 0,
+          "bits": [ 19 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:15.12-15.18"
+          }
+        },
+        "MemWrite_D": {
+          "hide_name": 0,
+          "bits": [ 6, 7 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:7.17-7.27"
+          }
+        },
+        "MemWrite_E": {
+          "hide_name": 0,
+          "bits": [ 17, 18 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:14.18-14.28"
+          }
+        },
+        "RegWrite_D": {
+          "hide_name": 0,
+          "bits": [ 4 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:5.11-5.21"
+          }
+        },
+        "RegWrite_E": {
+          "hide_name": 0,
+          "bits": [ 15 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:12.12-12.22"
+          }
+        },
+        "ResultSrc_D": {
+          "hide_name": 0,
+          "bits": [ 5 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:6.11-6.22"
+          }
+        },
+        "ResultSrc_E": {
+          "hide_name": 0,
+          "bits": [ 16 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:13.12-13.23"
+          }
+        },
+        "clk": {
+          "hide_name": 0,
+          "bits": [ 2 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:3.11-3.14"
+          }
+        },
+        "rst": {
+          "hide_name": 0,
+          "bits": [ 3 ],
+          "attributes": {
+            "src": "{workspace}/core/vsrc/buffer_ctrl.v:4.11-4.14"
+          }
+        }
+      }
+    }
+  }
+}

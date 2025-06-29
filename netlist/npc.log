@@ -1,0 +1,1 @@
+{workspace}/core/vsrc/RegisterFile.v:28: ERROR: syntax error, unexpected TOK_STRING, expecting TOK_ID or '#'

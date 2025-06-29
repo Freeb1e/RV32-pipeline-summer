@@ -1,0 +1,4 @@
+read_verilog -sv -formal -overwrite {workspace}/core/vsrc/Reg.v
+read_verilog -sv -formal -overwrite {workspace}/core/vsrc/buffer_ctrl.v
+design -reset-vlog; proc;
+write_json {workspace}/netlist/buffer_D_E_data.json
