@@ -49,7 +49,7 @@ module datapath(
                    .Rs1_D    	(Rs1_D     ),
                    .Rs2_D    	(Rs2_D     ),
                    .Rd_E     	(Rd_E      ),
-                   .PCSrc_E  	(Jump_sign    ),
+                   .PCSrc_E  	(Pre_Wrong),
 
                    .valid_F  	(valid_F   ),
                    .valid_D  	(valid_D   ),
@@ -288,7 +288,7 @@ module datapath(
     //--------------------------------------------------------------------------------------------
 
 
-    wire [31:0] PC_src;
+    reg [31:0] PC_src;
     wire [31:0] PC_norm,PC_jump,PC_jalr;
     PC PC_1(
            .clk(clk),
@@ -299,38 +299,69 @@ module datapath(
            .valid_out()
        );
     wire Jump_sign;
+    wire [31:0] PC_norm_E;
+    assign PC_norm_E=PC_reg_E+32'd4;
     assign PC_norm=PC_reg_F+32'd4;
     assign PC_jump=PC_reg_E+imme_E;
     assign PC_jalr=imme_E+ALU_DA;
     assign Jump_sign=Jump_E |( Branch_E & branch_true);
     assign PC_src=(Jump_sign)?((jalr_E)?PC_jalr:PC_jump):PC_norm;
+//     always@(*) begin
+//         reg [2:0] PC_src_ctrl={predict_F,Jump_sign,predict_E};
+//         case(PC_src_ctrl)
+//             3'b000: PC_src=PC_norm; //现在预测不跳，E阶段判断之前跳转无失误，正常加4
+//             3'b001: PC_src=PC_norm_E; //现在预测不跳，之前预测跳错了，E阶段发现不应该跳,使用E阶段的PC+4
+//             3'b010: PC_src=(jalr_E)?PC_jalr:PC_jump; //现在预测不跳，之前预测不跳错了，E阶段发现之前应该跳,使用之前应该跳的PC
+//             3'b011: PC_src=PC_norm; //现在预测不跳，之前预测应该跳，E阶段发现也应该跳，运行正确，正常加4
+//             3'b100: PC_src=PC_branch_jal_F; //现在预测跳，E阶段判断之前跳转无失误，使用预测跳转的地址
+//             3'b101: PC_src=PC_norm_E; //现在预测跳，E阶段判断之前跳转错误，使用E阶段的PC+4
+//             3'b110: PC_src=(jalr_E)?PC_jalr:PC_jump; //现在预测跳，之前预测不跳，现在发现应该跳，使用跳转的PC
+//             3'b111: PC_src=PC_branch_jal_F; //默认正常执行
+//         endcase
 
+//     end
+    
+//     assign predict_ctrl=0;
+
+     wire Pre_Wrong;
+//     assign Pre_Wrong=predict_E^Jump_sign;
+assign Pre_Wrong=Jump_sign; //暂时不使用分支预测
     reg jalr_E;
     always@(posedge clk) begin
         if (rst) begin
             jalr_E <= 1'b0;
         end else begin
-            jalr_E <= jalr_D;
+            jalr_E <=jalr_D;
         end
     end
 
-//分支预测为跳转
-    wire [6:0] opcode_F;
-    assign opcode_F=instr_F[6:0];
-    wire branch_F,jal_F;
-    wire [31:0] I_imme_F,J_imme_F,B_imme_F;
-    wire [31:0] imme_F;
-    wire [31:0] PC_branch_jal_F;
-    wire predict;
+// //分支预测为跳转
+//     wire [6:0] opcode_F;
+//     assign opcode_F=instr_F[6:0];
+//     wire branch_F,jal_F;
+//     wire [31:0] I_imme_F,J_imme_F,B_imme_F;
+//     wire [31:0] imme_F;
+//     wire [31:0] PC_branch_jal_F;
+//     wire predict_ctrl,predict_F;
+//     reg predict_D,predict_E;
 
-    assign branch_F=(opcode_F==`B_type);
-    assign jal_F=(opcode_F==`jal);
+//     assign branch_F=(opcode_F==`B_type);
+//     assign jal_F=(opcode_F==`jal);
 
-    assign J_imme_F={{12{instr_F[31]}},instr_F[19:12],instr_F[20],instr_F[30:21],1'b0};
-    assign B_imme_F={{20{instr_F[31]}},instr_F[7],instr_F[30:25],instr_F[11:8],1'b0};
-    assign imme_F=(jal_F)?J_imme_F:(branch_F)?B_imme_F:{32'd4};
-    assign PC_branch_jal_F=PC_reg_F+imme_F;
-
+//     assign J_imme_F={{12{instr_F[31]}},instr_F[19:12],instr_F[20],instr_F[30:21],1'b0};
+//     assign B_imme_F={{20{instr_F[31]}},instr_F[7],instr_F[30:25],instr_F[11:8],1'b0};
+//     assign imme_F=(jal_F)?J_imme_F:(branch_F)?B_imme_F:{32'd4};
+//     assign PC_branch_jal_F=PC_reg_F+imme_F;
+//     assign predict_F=(predict_ctrl)&&(jal_F || branch_F);
+//     always@(posedge clk) begin
+//         if (rst) begin
+//             predict_D <= 1'b0;
+//             predict_E <= 1'b0;
+//         end else begin
+//             predict_D <= (flash_D)?1'b0:predict_F;
+//             predict_E <= (flash_E)?1'b0:predict_D;
+//         end
+//     end
 
 
 
