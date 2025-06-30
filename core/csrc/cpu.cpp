@@ -37,8 +37,8 @@ void cpu_deinit() {
 }
 
 void single_cycle() {
-  dut->clk = 1; dut->eval(); m_trace->dump(sim_time); sim_time++;
   dut->clk = 0; dut->eval(); m_trace->dump(sim_time); sim_time++;
+  dut->clk = 1; dut->eval(); m_trace->dump(sim_time); sim_time++;
 }
 
 void stop(int code, uint32_t pc) {
@@ -60,11 +60,18 @@ void Cget_pc_inst(uint32_t* pc, uint32_t* inst){
   get_pc_inst(pc_ptr, inst_ptr);
 }
 
-static void exec_once() {
-
+uint32_t pc;
+static uint32_t exec_once() {
   /* itrace */
-  uint32_t pc, instru;
-  Cget_pc_inst(&pc, NULL);
+  uint32_t instru;
+  
+
+    /* run a cycle */
+ do {
+    single_cycle();
+    Cget_pc_inst(&pc, NULL);
+  }while (pc==0xFFFFFFFC);
+
   instru = paddr_read(pc, 4);
 
   /* ftrace */
@@ -72,13 +79,8 @@ static void exec_once() {
 
   // write iringbuf
   write_iringbuf(pc, instru);
+
   
-  /* run a cycle */
-  
- for(int cycle = 0; cycle < 5; cycle++){
-    single_cycle();
-  }
- 
 
 #ifdef CONFIG_ITRACE
   char *p = logbuf;
@@ -101,6 +103,7 @@ static void exec_once() {
   disassemble(p, logbuf + sizeof(logbuf) - p,
       pc, (uint8_t *)&instru, ilen);
 #endif
+  return pc;
 }
 
 static void trace_and_difftest() {
@@ -113,13 +116,22 @@ static void trace_and_difftest() {
   #ifdef CONFIG_DIFFTEST
     CPU_reg _this = get_cpu_state();
     difftest_step(_this.pc);
+
   #endif
 }
 
 static void execute(uint64_t n) {
+  uint32_t pct = 0;
+  static int first = 1;
   for (;n > 0; n --) {
     exec_once();
-    trace_and_difftest();
+    
+    if(first){
+      first = 0;
+    }else{
+      trace_and_difftest();
+    }
+
     // check watchpoint
     if(state == RUNNING && check_wp()) { state = STOP; }
     if (state != RUNNING) break;

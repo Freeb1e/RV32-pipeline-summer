@@ -15,7 +15,7 @@ module npc(
     wire mem_wen;
     wire mem_ren;
 
-
+    wire [31:0] PC_reg_WB; // for test
     datapath datapath1(
                  .clk(clk),
                  .rst(rst),
@@ -27,6 +27,7 @@ module npc(
                  .MemRead_M(mem_ren),
                  .ALUResult_E(ALU_DC),
                  .PC_reg_F(PC_reg),
+                 .PC_reg_WB_test(PC_reg_WB), // for test
                  .ebreak(stop_sim)
              );
 
@@ -62,20 +63,23 @@ module npc(
                .rdata 	(instr )
            );
 
+    wire [31:0] PC_reg_difftest;
+    //assign PC_reg_difftest = PC_reg; // for difftest
+    assign PC_reg_difftest = PC_reg_WB; // for difftest
     export "DPI-C" function get_pc_inst;
                function void get_pc_inst();
                    output int cpu_pc;
                    output int cpu_inst;
-                   cpu_pc = PC_reg;
+                   cpu_pc = PC_reg_difftest;
                    cpu_inst = instr;
                endfunction
 
-               import "DPI-C" function void ebreak();
-                          always @ (posedge clk) begin
-                              if(stop_sim) begin
-                                  ebreak();
-                              end
-                          end
+    import "DPI-C" function void ebreak();
+                always @ (posedge clk) begin
+                    if(stop_sim) begin
+                        ebreak();
+                    end
+                end
 
 
 endmodule

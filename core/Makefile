@@ -30,6 +30,9 @@ INCFLAGS = $(addprefix -I, $(INC_PATH))
 CXXFLAGS += $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
 LDFLAGS += -lreadline -ltinfo -ldl -pie
 
+VERILATOR_FLAGS += --debug     # 启用 Verilator 调试
+CXXFLAGS += -g -O0             # 启用 C++ 调试符号和禁用优化
+
 all: sim
 
 
@@ -58,6 +61,9 @@ $(BIN): $(VSRCS) $(CSRCS) $(NVBOARD_ARCHIVE)
 
 run: $(BIN)
 	@$^
+
+gdb: $(BIN)
+	@gdb --args $^ $(ARGS) $(LOCAL_ARGS)
 
 clean:
 	rm -rf $(BUILD_DIR) $(SIM_DIR)

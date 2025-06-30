@@ -207,7 +207,7 @@ module buffer_M_W_data(
             .dout(Rd_W),
             .wen(valid)
         );
-    Reg #(32, 0) reg_PC_reg_plus4(
+    Reg #(32, 32'h8000_0004) reg_PC_reg_plus4(
             .clk(clk),
             .rst(rst),
             .din(PC_reg_plus4_M),

@@ -57,7 +57,7 @@ module mulcu_decoder(
 
     assign auipc=(opcode==`auipc);
 
-    assign reg_wen=~(opcode==`store | opcode==`B_type);
+    assign reg_wen=~(opcode==`store | opcode==`B_type | opcode==7'b0000000);
     assign reg_ren=1'b1;
 
     assign ALU_DB_Src=(opcode==`B_type | opcode==`R_type)?1'b1:1'b0;

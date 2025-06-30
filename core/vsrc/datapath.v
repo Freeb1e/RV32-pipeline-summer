@@ -15,10 +15,17 @@ module datapath(
         output MemRead_M,
         output [31:0] ALUResult_E,
         output [31:0] PC_reg_F,
+        //--------写回阶段指令PC---------
+        output wire [31:0] PC_reg_WB_test,
+        // output wire RegWrite_W_test,
+        //-------------------------------
         output ebreak
     );
 
-
+    //测试输出信号端口----------
+    assign PC_reg_WB_test=PC_reg_WB;
+    // assign RegWrite_W_test=RegWrite_W;
+    //--------------------------
 
     wire RegWrite_D;
 
@@ -26,7 +33,6 @@ module datapath(
     wire ALU_ZERO;
 
 
-    // output declaration of module valid_ctrl
     wire valid_F;
     wire valid_D;
     wire valid_E;
@@ -472,10 +478,10 @@ always @(posedge clk) begin
 end
 //-------------------------------------------
     assign mem_addr=ALUResult_M ;
-    //-----------------------------------------
+//-----------------------------------------
 
 
-    // output declaration of module instr_trace
+// output declaration of module instr_trace
     wire [31:0] instr_W_TR;
     wire [31:0] instr_M_TR;
     wire [31:0] PC_reg_WB;

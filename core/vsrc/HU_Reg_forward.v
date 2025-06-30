@@ -9,14 +9,11 @@ module HU_Reg_forward(
         input [4:0] Rs1_E,
         input [4:0] Rs2_E,
 
-        //input [1:0] ResultSrc_M,
-        //input [2:0] funct3_M,
-        //ALU_DA_Src
         input reg_ren_E,
         input auipc_E,
         input [31:0]PC_reg_E,
         input [31:0] rdata1_E,
-        //ALU_DB_Src
+
         input ALU_DB_Src_E,
         input [31:0] imme_E,
         input [31:0] rdata2_E,
@@ -114,7 +111,7 @@ module HU_Reg_forward(
 
 `ifdef forward
     assign ALU_DA = (auipc_E) ? PC_reg_E : ((Rs1_E==5'd0)? 32'd0:Real_rdata1_E);
-    assign ALU_DB = (ALU_DB_Src_E) ? Real_rdata2_E : imme_E;
+    assign ALU_DB = (ALU_DB_Src_E) ? ((Rs2_E==5'd0)? 32'd0:Real_rdata2_E) : imme_E;
 `else
     reg [31:0] Real_rdata2_E;
     assign ALU_DA=(reg_ren_E)?((auipc_E)? PC_reg_E:rdata1_E):32'b0;
