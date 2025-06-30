@@ -23,7 +23,7 @@ module datapath(
     );
 
     //测试输出信号端口----------
-    assign PC_reg_WB_test=PC_reg_WB;
+    assign PC_reg_WB_test=PC_reg_W;
     // assign RegWrite_W_test=RegWrite_W;
     //--------------------------
 
@@ -188,20 +188,16 @@ module datapath(
     // output declaration of module buffer_F_D_data
     wire [31:0] instr_D;
     wire [31:0] PC_reg_D;
-    wire [31:0] PC_reg_plus4_D;
-    wire [31:0] PC_reg_plus4_F;
-    assign PC_reg_plus4_F=PC_reg_F+32'd4;
+
     buffer_F_D_data u_buffer_F_D_data(
                         .clk            	(clk             ),
                         .rst            	(rst     |flash_D         ),
 
                         .instr_F        	(instr_F         ),
                         .PC_reg_F       	(PC_reg_F        ),
-                        .PC_reg_plus4_F 	(PC_reg_plus4_F  ),
 
                         .instr_D        	(instr_D         ),
                         .PC_reg_D       	(PC_reg_D        ),
-                        .PC_reg_plus4_D 	(PC_reg_plus4_D  ),
 
                         .valid        	(valid_F         )
                     );
@@ -209,7 +205,6 @@ module datapath(
 
     // output declaration of module buffer_D_E_data
     wire [31:0] PC_reg_E;
-    wire [31:0] PC_reg_plus4_E;
     wire [31:0] imme_E;
     wire [31:0] rdata1_E;
     wire [31:0] rdata2_E;
@@ -220,7 +215,6 @@ module datapath(
                         .rst            	(rst  |flash_E   ),
 
                         .PC_reg_D       	(PC_reg_D        ),
-                        .PC_reg_plus4_D 	(PC_reg_plus4_D  ),
                         .imme_D         	(imme_D          ),
                         .rdata1_D          	(rdata1_D           ),
                         .rdata2_D          	(rdata2_D           ),
@@ -229,7 +223,6 @@ module datapath(
                         .Rs2_D         	    (Rs2_D          ),
 
                         .PC_reg_E       	(PC_reg_E        ),
-                        .PC_reg_plus4_E 	(PC_reg_plus4_E  ),
                         .imme_E         	(imme_E          ),
                         .rdata1_E          	(rdata1_E           ),
                         .rdata2_E          	(rdata2_E           ),
@@ -246,6 +239,7 @@ module datapath(
     wire [31:0] PC_reg_plus4_M;
     wire [31:0] imme_M;
     wire [31:0] rdata2_M;
+    wire [31:0] PC_reg_M;
     buffer_E_M_data u_buffer_E_M_data(
                         .clk            	(clk             ),
                         .rst            	(rst      ),
@@ -253,13 +247,13 @@ module datapath(
                         .ALUResult_E    	(ALUResult_E     ),
                         .WriteData_E    	(rdata2_E     ),
                         .Rd_E           	(Rd_E            ),
-                        .PC_reg_plus4_E 	(PC_reg_plus4_E  ),
+                        .PC_reg_E 	        (PC_reg_E  ),
                         .imme_E         	(imme_E          ),
 
                         .ALUResult_M    	(ALUResult_M     ),
                         .WriteData_M    	(rdata2_M     ),
                         .Rd_M           	(Rd_M            ),
-                        .PC_reg_plus4_M 	(PC_reg_plus4_M  ),
+                        .PC_reg_M 	        (PC_reg_M  ),
                         .imme_M         	(imme_M          ),
 
                         .valid        	(valid_E         )
@@ -271,19 +265,20 @@ module datapath(
     wire [31:0] PC_reg_plus4_W;
     wire [31:0] ReadData_W;
     wire [31:0] imme_W;
+    wire [31:0] PC_reg_W;
     buffer_M_W_data u_buffer_M_W_data(
                         .clk            	(clk             ),
                         .rst            	(rst             ),
                         .ALUResult_M    	(ALUResult_M     ),
                         .ReadData_M    	    (ReadData_M     ),
-                        .PC_reg_plus4_M 	(PC_reg_plus4_M  ),
+                        .PC_reg_M 	(PC_reg_M  ),
                         .Rd_M           	(Rd_M            ),
                         .imme_M         	(imme_M          ),
 
                         .ALUResult_W    	(ALUResult_W     ),
                         .ReadData_W    	    (ReadData_W     ),
                         .Rd_W           	(Rd_W            ),
-                        .PC_reg_plus4_W 	(PC_reg_plus4_W  ),
+                        .PC_reg_W 	        (PC_reg_W  ),
                         .imme_W         	(imme_W          ),
 
                         .valid        	(valid_M         )
@@ -305,9 +300,7 @@ module datapath(
        );
     wire Jump_sign;
     assign PC_norm=PC_reg_F+32'd4;
-    //new PC actually generated in EX stage
-    assign PC_jump=PC_reg_plus4_E+imme_E-32'd4;
-    //assign PC_jalr=imme_E+rdata1_E;
+    assign PC_jump=PC_reg_E+imme_E;
     assign PC_jalr=imme_E+ALU_DA;
     assign Jump_sign=Jump_E |( Branch_E & branch_true);
     assign PC_src=(Jump_sign)?((jalr_E)?PC_jalr:PC_jump):PC_norm;
@@ -320,6 +313,28 @@ module datapath(
             jalr_E <= jalr_D;
         end
     end
+
+//分支预测为跳转
+    wire [6:0] opcode_F;
+    assign opcode_F=instr_F[6:0];
+    wire branch_F,jal_F;
+    wire [31:0] I_imme_F,J_imme_F,B_imme_F;
+    wire [31:0] imme_F;
+    wire [31:0] PC_branch_jal_F;
+    wire predict;
+
+    assign branch_F=(opcode_F==`B_type);
+    assign jal_F=(opcode_F==`jal);
+
+    assign J_imme_F={{12{instr_F[31]}},instr_F[19:12],instr_F[20],instr_F[30:21],1'b0};
+    assign B_imme_F={{20{instr_F[31]}},instr_F[7],instr_F[30:25],instr_F[11:8],1'b0};
+    assign imme_F=(jal_F)?J_imme_F:(branch_F)?B_imme_F:{32'd4};
+    assign PC_branch_jal_F=PC_reg_F+imme_F;
+
+
+
+
+
     //-----------------EX stage----------------
     wire [31:0] ALU_DA,ALU_DB;
     wire ALU_OverFlow;
@@ -337,7 +352,7 @@ module datapath(
             2'b00:
                 ALUResult_E=ALUResult_E_RAW;
             2'b10:
-                ALUResult_E=PC_reg_plus4_E;
+                ALUResult_E=PC_reg_E+32'd4;
             2'b11:
                 ALUResult_E=imme_E;
             default:
@@ -484,7 +499,6 @@ end
 // output declaration of module instr_trace
     wire [31:0] instr_W_TR;
     wire [31:0] instr_M_TR;
-    wire [31:0] PC_reg_WB;
     
     instr_trace u_instr_trace(
         .clk            	(clk             ),
@@ -493,11 +507,9 @@ end
         .valid_D        	(valid_D         ),
         .valid_E        	(valid_E         ),
         .valid_M        	(valid_M         ),
-        .PC_reg_plus4_W 	(PC_reg_plus4_W  ),
         .flash_E        	(flash_E         ),
         .instr_W_TR     	(instr_W_TR      ),
-        .instr_M_TR     	(instr_M_TR      ),
-        .PC_reg_WB      	(PC_reg_WB       )
+        .instr_M_TR     	(instr_M_TR      )
     );
     
 endmodule

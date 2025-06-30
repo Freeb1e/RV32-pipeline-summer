@@ -5,12 +5,10 @@ module instr_trace(
     input valid_D,
     input valid_E,
     input valid_M,
-    input [31:0] PC_reg_plus4_W,
     input flash_E,
 
     output [31:0] instr_W_TR,
-    output [31:0] instr_M_TR,
-    output [31:0] PC_reg_WB
+    output [31:0] instr_M_TR
 );
     wire [31:0] instr_E_TR;
     //wire [31:0] instr_M_TR;
@@ -36,5 +34,4 @@ module instr_trace(
         .dout(instr_W_TR),
         .wen(valid_M)
     );
-    assign PC_reg_WB = PC_reg_plus4_W-32'd4;
 endmodule

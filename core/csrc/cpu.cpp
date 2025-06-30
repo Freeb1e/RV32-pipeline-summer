@@ -70,7 +70,7 @@ static uint32_t exec_once() {
  do {
     single_cycle();
     Cget_pc_inst(&pc, NULL);
-  }while (pc==0xFFFFFFFC);
+  }while (pc==0x00000000);
 
   /* ftrace */
   instru = paddr_read(pc, 4);

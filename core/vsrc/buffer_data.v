@@ -4,11 +4,9 @@ module buffer_F_D_data(
         input rst,
         input [31:0] instr_F,
         input [31:0] PC_reg_F,
-        input [31:0] PC_reg_plus4_F,
         input valid,
         output [31:0] instr_D,
-        output [31:0] PC_reg_D,
-        output [31:0] PC_reg_plus4_D
+        output [31:0] PC_reg_D
     );
 
     Reg #(32, 0) reg_instr (
@@ -27,13 +25,7 @@ module buffer_F_D_data(
             .wen(valid)
         );
 
-    Reg #(32, 0) reg_PC_reg_plus4 (
-            .clk(clk),
-            .rst(rst),
-            .din(PC_reg_plus4_F),
-            .dout(PC_reg_plus4_D),
-            .wen(valid)
-        );
+
 
 endmodule
 
@@ -41,7 +33,6 @@ module buffer_D_E_data(
         input clk,
         input rst,
         input [31:0] PC_reg_D,
-        input [31:0] PC_reg_plus4_D,
         input [31:0] imme_D,
         input [31:0] rdata1_D,
         input [31:0] rdata2_D,
@@ -50,7 +41,6 @@ module buffer_D_E_data(
         input [4:0] Rs2_D,
         input valid,
         output [31:0] PC_reg_E,
-        output [31:0] PC_reg_plus4_E,
         output [31:0] imme_E,
         output [31:0] rdata1_E,
         output [31:0] rdata2_E,
@@ -64,13 +54,6 @@ module buffer_D_E_data(
             .rst(rst),
             .din(PC_reg_D),
             .dout(PC_reg_E),
-            .wen(valid)
-        );
-    Reg #(32, 0) reg_PC_reg_plus4(
-            .clk(clk),
-            .rst(rst),
-            .din(PC_reg_plus4_D),
-            .dout(PC_reg_plus4_E),
             .wen(valid)
         );
     Reg #(32, 0) reg_imme(
@@ -124,12 +107,12 @@ module buffer_E_M_data(
         input [31:0] ALUResult_E,
         input [31:0] WriteData_E,
         input [4:0] Rd_E,
-        input [31:0] PC_reg_plus4_E,
+        input [31:0] PC_reg_E,
         input valid,
         output [31:0] ALUResult_M,
         output [31:0] WriteData_M,
         output [4:0] Rd_M,
-        output [31:0] PC_reg_plus4_M,
+        output [31:0] PC_reg_M,
         input [31:0] imme_E,
         output [31:0] imme_M
     );
@@ -154,11 +137,11 @@ module buffer_E_M_data(
             .dout(Rd_M),
             .wen(valid)
         );
-    Reg #(32, 0) reg_PC_reg_plus4(
+    Reg #(32, 0) reg_PC_reg(
             .clk(clk),
             .rst(rst),
-            .din(PC_reg_plus4_E),
-            .dout(PC_reg_plus4_M),
+            .din(PC_reg_E),
+            .dout(PC_reg_M),
             .wen(valid)
         );
     Reg #(32, 0) reg_imme(
@@ -176,13 +159,13 @@ module buffer_M_W_data(
     input rst,
     input [31:0] ALUResult_M,
     input [31:0] ReadData_M,
-    input [31:0] PC_reg_plus4_M,
+    input [31:0] PC_reg_M,
     input [4:0] Rd_M,
     input valid,
     output [31:0] ALUResult_W,
     output [31:0] ReadData_W,
     output [4:0] Rd_W,
-    output [31:0] PC_reg_plus4_W,
+    output [31:0] PC_reg_W,
     input [31:0] imme_M,
     output [31:0] imme_W
     );
@@ -207,11 +190,11 @@ module buffer_M_W_data(
             .dout(Rd_W),
             .wen(valid)
         );
-    Reg #(32, 32'h8000_0004) reg_PC_reg_plus4(
+    Reg #(32, 32'h8000_0000) reg_PC_reg(
             .clk(clk),
             .rst(rst),
-            .din(PC_reg_plus4_M),
-            .dout(PC_reg_plus4_W),
+            .din(PC_reg_M),
+            .dout(PC_reg_W),
             .wen(valid)
         );
     Reg #(32,0) reg_imme(
