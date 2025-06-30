@@ -72,9 +72,8 @@ static uint32_t exec_once() {
     Cget_pc_inst(&pc, NULL);
   }while (pc==0xFFFFFFFC);
 
-  instru = paddr_read(pc, 4);
-
   /* ftrace */
+  instru = paddr_read(pc, 4);
   ftrace(pc, instru);
 
   // write iringbuf
