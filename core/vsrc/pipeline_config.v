@@ -1,4 +1,5 @@
 `define forward
 `define priority_E
 `define pipeline_mode
-//`define SIMULATION
+`define SIMULATION
+`define Predict

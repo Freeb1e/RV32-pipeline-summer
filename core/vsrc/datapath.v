@@ -307,7 +307,19 @@ module datapath(
     assign PC_jump=PC_reg_E+imme_E;
     assign PC_jalr=imme_E+ALU_DA;
     assign Jump_sign=Jump_E |( Branch_E & branch_true);
-    //assign PC_src=(Jump_sign)?((jalr_E)?PC_jalr:PC_jump):PC_norm;
+    //assign PC_src=(Jump_sign)?((jalr_E)?PC_jalr:PC_jump):PC_norm;]
+    wire Pre_Wrong;
+    
+    reg jalr_E;
+    always@(posedge clk) begin
+        if (rst) begin
+            jalr_E <= 1'b0;
+        end
+        else begin
+            jalr_E <=(flash_E)?1'b0:(valid_D)?jalr_D:jalr_E;
+        end
+    end
+    `ifdef Predict
     reg [2:0] PC_src_ctrl;
     always@(*) begin
         PC_src_ctrl={predict_F,Jump_sign,predict_E};
@@ -332,20 +344,7 @@ module datapath(
 
     end
 
-    assign predict_ctrl=1;
-
-    wire Pre_Wrong;
     assign Pre_Wrong=predict_E^Jump_sign;
-    reg jalr_E;
-    always@(posedge clk) begin
-        if (rst) begin
-            jalr_E <= 1'b0;
-        end
-        else begin
-            jalr_E <=jalr_D;
-        end
-    end
-
     //分支预测为跳转
     wire [6:0] opcode_F;
     assign opcode_F=instr_F[6:0];
@@ -363,7 +362,8 @@ module datapath(
     assign B_imme_F={{20{instr_F[31]}},instr_F[7],instr_F[30:25],instr_F[11:8],1'b0};
     assign imme_F=(jal_F)?J_imme_F:(branch_F)?B_imme_F:{32'd4};
     assign PC_branch_jal_F=PC_reg_F+imme_F;
-    assign predict_F=(predict_ctrl)&&(jal_F || branch_F);
+    assign predict_F = ((predict_ctrl) && branch_F) || jal_F;
+    
     always@(posedge clk) begin
         if (rst) begin
             predict_D <= 1'b0;
@@ -375,7 +375,43 @@ module datapath(
         end
     end
 
+    reg [1:0] state; 
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            state <= 2'b00; // 初始化为强烈不跳转
+        end
+        else if (Branch_E) begin // 仅在 EX 阶段为分支指令时更新状态
+            case (state)
+                2'b00: // 强烈不跳转
+                    if (Pre_Wrong)
+                        state <= 2'b01; // 转为弱不跳转
+                    else
+                        state <= 2'b00; // 保持强烈不跳转
+                2'b01: // 弱不跳转
+                    if (Pre_Wrong)
+                        state <= 2'b10; // 转为弱跳转
+                    else
+                        state <= 2'b00; // 转为强烈不跳转
+                2'b10: // 弱跳转
+                    if (Pre_Wrong)
+                        state <= 2'b01; // 转为弱不跳转
+                    else
+                        state <= 2'b11; // 转为强烈跳转
+                2'b11: // 强烈跳转
+                    if (Pre_Wrong)
+                        state <= 2'b10; // 转为弱跳转
+                    else
+                        state <= 2'b11; // 保持强烈跳转
+            endcase
+        end
+    end
 
+    // 根据状态更新分支预测控制信号
+    assign predict_ctrl = (state[1] == 1'b1); // MSB 为 1 表示跳转
+    `else
+    assign PC_src=(Jump_sign)?((jalr_E)?PC_jalr:PC_jump):PC_norm;
+    assign Pre_Wrong=Jump_sign; //不使用分支预测
+`endif
 
 
     //-----------------EX stage----------------
