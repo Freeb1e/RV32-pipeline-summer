@@ -12,10 +12,10 @@ module RegisterFile #(ADDR_WIDTH = 5, DATA_WIDTH = 32) (
 );
     
     reg [DATA_WIDTH-1:0] rf [2**ADDR_WIDTH-1:0];
-
+    integer i;
     always @(posedge clk) begin
         if (rst) begin
-            for (int i=0; i<2**ADDR_WIDTH; i=i+1) begin
+            for (i=0; i<2**ADDR_WIDTH; i=i+1) begin
                 rf[i] <= 0;
             end
         end
@@ -24,11 +24,11 @@ module RegisterFile #(ADDR_WIDTH = 5, DATA_WIDTH = 32) (
     
     assign rdata1 = (ren&(raddr1!=0)) ? rf[raddr1] : 0;
     assign rdata2 = (ren&(raddr2!=0)) ? rf[raddr2] : 0;
-
+`ifdef SIMULATION
     export "DPI-C" function get_reg;
     function void get_reg(int addr);
         output int reg_data;
         reg_data = addr == 0 ? 32'b0 : rf[addr];
     endfunction
-
+`endif
 endmodule

@@ -13,7 +13,7 @@ module datapath(
         output [31:0] mem_addr,
         output MemWrite_M,
         output MemRead_M,
-        output [31:0] ALUResult_E,
+        output reg [31:0] ALUResult_E,
         output [31:0] PC_reg_F,
         //--------写回阶段指令PC---------
         output wire [31:0] PC_reg_WB_test,

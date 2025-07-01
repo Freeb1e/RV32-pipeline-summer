@@ -2,7 +2,7 @@
 module mulcu_decoder(
         input [31:0] instr,
         input ALU_ZERO,
-        output reg [3:0] alu_op,
+        output [3:0] alu_op,
         output [31:0] imme,
         output ebreak,
         output [4:0] Rs1,

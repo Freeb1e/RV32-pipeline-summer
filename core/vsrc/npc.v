@@ -1,7 +1,7 @@
 `include "define.v"
 `include "pipeline_config.v"
 `timescale 1ns / 1ps
-module npc(
+module myCPU(
 `ifdef SIMULATION
         input clk,
         input rst
