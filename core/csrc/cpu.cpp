@@ -25,7 +25,7 @@ void cpu_init(const char* Vcd_file){
   state = RUNNING;
 
   Verilated::traceEverOn(true);
-  dut->trace(m_trace, 10);
+  dut->trace(m_trace, 12);
   m_trace->open(Vcd_file);
   reset(10);
 }

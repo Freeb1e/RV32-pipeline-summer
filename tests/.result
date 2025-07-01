@@ -1,1 +1,9 @@
 [        chessc] [1;31m***FAIL***[0m
+[          min3] [1;32mPASS[0m
+[           div] [1;32mPASS[0m
+[           bit] [1;32mPASS[0m
+[          fact] [1;32mPASS[0m
+[         crc32] [1;32mPASS[0m
+[     recursion] [1;32mPASS[0m
+[         dummy] [1;32mPASS[0m
+[     leap-year] [1;32mPASS[0m

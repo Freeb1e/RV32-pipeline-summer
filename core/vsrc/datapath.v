@@ -18,6 +18,10 @@ module datapath(
         //--------写回阶段指令PC---------
         output wire [31:0] PC_reg_WB_test,
         // output wire RegWrite_W_test,
+`ifdef SIMULATION
+        `else
+        output reg [1:0] mask,
+`endif
         //-------------------------------
         output ebreak
     );
@@ -236,7 +240,6 @@ module datapath(
     // output declaration of module buffer_E_M_data
     wire [31:0] ALUResult_M;
     wire [4:0] Rd_M;
-    wire [31:0] PC_reg_plus4_M;
     wire [31:0] imme_M;
     wire [31:0] rdata2_M;
     wire [31:0] PC_reg_M;
@@ -262,7 +265,6 @@ module datapath(
     // output declaration of module buffer_M_W_data
     wire [31:0] ALUResult_W;
     wire [4:0] Rd_W;
-    wire [31:0] PC_reg_plus4_W;
     wire [31:0] ReadData_W;
     wire [31:0] imme_W;
     wire [31:0] PC_reg_W;
@@ -305,63 +307,73 @@ module datapath(
     assign PC_jump=PC_reg_E+imme_E;
     assign PC_jalr=imme_E+ALU_DA;
     assign Jump_sign=Jump_E |( Branch_E & branch_true);
-    assign PC_src=(Jump_sign)?((jalr_E)?PC_jalr:PC_jump):PC_norm;
-//     always@(*) begin
-//         reg [2:0] PC_src_ctrl={predict_F,Jump_sign,predict_E};
-//         case(PC_src_ctrl)
-//             3'b000: PC_src=PC_norm; //现在预测不跳，E阶段判断之前跳转无失误，正常加4
-//             3'b001: PC_src=PC_norm_E; //现在预测不跳，之前预测跳错了，E阶段发现不应该跳,使用E阶段的PC+4
-//             3'b010: PC_src=(jalr_E)?PC_jalr:PC_jump; //现在预测不跳，之前预测不跳错了，E阶段发现之前应该跳,使用之前应该跳的PC
-//             3'b011: PC_src=PC_norm; //现在预测不跳，之前预测应该跳，E阶段发现也应该跳，运行正确，正常加4
-//             3'b100: PC_src=PC_branch_jal_F; //现在预测跳，E阶段判断之前跳转无失误，使用预测跳转的地址
-//             3'b101: PC_src=PC_norm_E; //现在预测跳，E阶段判断之前跳转错误，使用E阶段的PC+4
-//             3'b110: PC_src=(jalr_E)?PC_jalr:PC_jump; //现在预测跳，之前预测不跳，现在发现应该跳，使用跳转的PC
-//             3'b111: PC_src=PC_branch_jal_F; //默认正常执行
-//         endcase
+    //assign PC_src=(Jump_sign)?((jalr_E)?PC_jalr:PC_jump):PC_norm;
+    reg [2:0] PC_src_ctrl;
+    always@(*) begin
+        PC_src_ctrl={predict_F,Jump_sign,predict_E};
+        case(PC_src_ctrl)
+            3'b000:
+                PC_src=PC_norm; //现在预测不跳，E阶段判断之前跳转无失误，正常加4
+            3'b001:
+                PC_src=PC_norm_E; //现在预测不跳，之前预测跳错了，E阶段发现不应该跳,使用E阶段的PC+4
+            3'b010:
+                PC_src=(jalr_E)?PC_jalr:PC_jump; //现在预测不跳，之前预测不跳错了，E阶段发现之前应该跳,使用之前应该跳的PC
+            3'b011:
+                PC_src=PC_norm; //现在预测不跳，之前预测应该跳，E阶段发现也应该跳，运行正确，正常加4
+            3'b100:
+                PC_src=PC_branch_jal_F; //现在预测跳，E阶段判断之前跳转无失误，使用预测跳转的地址
+            3'b101:
+                PC_src=PC_norm_E; //现在预测跳，E阶段判断之前跳转错误，使用E阶段的PC+4
+            3'b110:
+                PC_src=(jalr_E)?PC_jalr:PC_jump; //现在预测跳，之前预测不跳，现在发现应该跳，使用跳转的PC
+            3'b111:
+                PC_src=PC_branch_jal_F; //默认正常执行
+        endcase
 
-//     end
-    
-//     assign predict_ctrl=0;
+    end
 
-     wire Pre_Wrong;
-//     assign Pre_Wrong=predict_E^Jump_sign;
-assign Pre_Wrong=Jump_sign; //暂时不使用分支预测
+    assign predict_ctrl=1;
+
+    wire Pre_Wrong;
+    assign Pre_Wrong=predict_E^Jump_sign;
     reg jalr_E;
     always@(posedge clk) begin
         if (rst) begin
             jalr_E <= 1'b0;
-        end else begin
+        end
+        else begin
             jalr_E <=jalr_D;
         end
     end
 
-// //分支预测为跳转
-//     wire [6:0] opcode_F;
-//     assign opcode_F=instr_F[6:0];
-//     wire branch_F,jal_F;
-//     wire [31:0] I_imme_F,J_imme_F,B_imme_F;
-//     wire [31:0] imme_F;
-//     wire [31:0] PC_branch_jal_F;
-//     wire predict_ctrl,predict_F;
-//     reg predict_D,predict_E;
+    //分支预测为跳转
+    wire [6:0] opcode_F;
+    assign opcode_F=instr_F[6:0];
+    wire branch_F,jal_F;
+    wire [31:0] I_imme_F,J_imme_F,B_imme_F;
+    wire [31:0] imme_F;
+    wire [31:0] PC_branch_jal_F;
+    wire predict_ctrl,predict_F;
+    reg predict_D,predict_E;
 
-//     assign branch_F=(opcode_F==`B_type);
-//     assign jal_F=(opcode_F==`jal);
+    assign branch_F=(opcode_F==`B_type);
+    assign jal_F=(opcode_F==`jal);
 
-//     assign J_imme_F={{12{instr_F[31]}},instr_F[19:12],instr_F[20],instr_F[30:21],1'b0};
-//     assign B_imme_F={{20{instr_F[31]}},instr_F[7],instr_F[30:25],instr_F[11:8],1'b0};
-//     assign imme_F=(jal_F)?J_imme_F:(branch_F)?B_imme_F:{32'd4};
-//     assign PC_branch_jal_F=PC_reg_F+imme_F;
-//     assign predict_F=(predict_ctrl)&&(jal_F || branch_F);
-//     always@(posedge clk) begin
-//         if (rst) begin
-//             predict_D <= 1'b0;
-//             predict_E <= 1'b0;
-//         end else begin
-//             predict_D <= (flash_D)?1'b0:predict_F;
-//             predict_E <= (flash_E)?1'b0:predict_D;
-//         end
-//     end
+    assign J_imme_F={{12{instr_F[31]}},instr_F[19:12],instr_F[20],instr_F[30:21],1'b0};
+    assign B_imme_F={{20{instr_F[31]}},instr_F[7],instr_F[30:25],instr_F[11:8],1'b0};
+    assign imme_F=(jal_F)?J_imme_F:(branch_F)?B_imme_F:{32'd4};
+    assign PC_branch_jal_F=PC_reg_F+imme_F;
+    assign predict_F=(predict_ctrl)&&(jal_F || branch_F);
+    always@(posedge clk) begin
+        if (rst) begin
+            predict_D <= 1'b0;
+            predict_E <= 1'b0;
+        end
+        else begin
+            predict_D <= (flash_D)?1'b0:(valid_F)?predict_F:predict_D;
+            predict_E <= (flash_E)?1'b0:(valid_D)?predict_D:predict_E;
+        end
+    end
 
 
 
@@ -410,9 +422,9 @@ assign Pre_Wrong=Jump_sign; //暂时不使用分支预测
                        .ALU_DB_Src_E 	(ALU_DB_Src_E  ),
                        .imme_E       	(imme_E        ),
                        .rdata2_E     	(rdata2_E      ),
-                       `ifdef forward
-                          .Real_rdata2_E 	(real_rdata2_E  ),
-                          `endif
+`ifdef forward
+                       .Real_rdata2_E 	(real_rdata2_E  ),
+`endif
                        .ALU_DA       	(ALU_DA        ),
                        .ALU_DB       	(ALU_DB        )
                    );
@@ -504,43 +516,63 @@ assign Pre_Wrong=Jump_sign; //暂时不使用分支预测
             default:
                 mem_data_out = 32'b0;
         endcase
+`ifdef SIMULATION
+`else
+        case(funct3_M)
+            3'b000:
+                mask=2'b00;
+            3'b001:
+                mask=2'b01;
+            3'b010:
+                mask=2'b10;
+            3'b100:
+                mask=2'b00;
+            3'b101:
+                mask=2'b01;
+            default:
+                mask=2'b10;
+        endcase
+`endif
+
     end
-//sw数据冲突处理
 
-wire [31:0]real_rdata2_E;
-reg [31:0] real_rdata2_M;
+    //sw数据冲突处理
 
-wire [31:0] rdata2_My;
-assign rdata2_My=real_rdata2_M;
+    wire [31:0]real_rdata2_E;
+    reg [31:0] real_rdata2_M;
 
-reg [4:0] Rs2_M;
+    wire [31:0] rdata2_My;
+    assign rdata2_My=real_rdata2_M;
 
-always @(posedge clk) begin
-    if (rst) begin
-        real_rdata2_M<=32'b0;
-    end else begin
-        real_rdata2_M<=real_rdata2_E;
+    reg [4:0] Rs2_M;
+
+    always @(posedge clk) begin
+        if (rst) begin
+            real_rdata2_M<=32'b0;
+        end
+        else begin
+            real_rdata2_M<=real_rdata2_E;
+        end
     end
-end
-//-------------------------------------------
+    //-------------------------------------------
     assign mem_addr=ALUResult_M ;
-//-----------------------------------------
+    //-----------------------------------------
 
 
-// output declaration of module instr_trace
+    // output declaration of module instr_trace
     wire [31:0] instr_W_TR;
     wire [31:0] instr_M_TR;
-    
+
     instr_trace u_instr_trace(
-        .clk            	(clk             ),
-        .rst            	(rst             ),
-        .instr_D_TR     	(instr_D      ),
-        .valid_D        	(valid_D         ),
-        .valid_E        	(valid_E         ),
-        .valid_M        	(valid_M         ),
-        .flash_E        	(flash_E         ),
-        .instr_W_TR     	(instr_W_TR      ),
-        .instr_M_TR     	(instr_M_TR      )
-    );
-    
+                    .clk            	(clk             ),
+                    .rst            	(rst             ),
+                    .instr_D_TR     	(instr_D      ),
+                    .valid_D        	(valid_D         ),
+                    .valid_E        	(valid_E         ),
+                    .valid_M        	(valid_M         ),
+                    .flash_E        	(flash_E         ),
+                    .instr_W_TR     	(instr_W_TR      ),
+                    .instr_M_TR     	(instr_M_TR      )
+                );
+
 endmodule

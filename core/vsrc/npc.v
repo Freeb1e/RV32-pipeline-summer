@@ -1,20 +1,51 @@
 `include "define.v"
+`include "pipeline_config.v"
 `timescale 1ns / 1ps
 module npc(
+`ifdef SIMULATION
         input clk,
-        input rst,
-        output [31:0] ALU_DC
+        input rst
+`else
+        input wire cpu_clk,
+        input wire cpu_rst,
+
+        // Interface to IROM
+        output wire [31:0] irom_addr,
+        input wire [31:0] irom_data,
+
+        // Interface to DRAM & peripheral
+        output wire [31:0] perip_addr,
+        output wire perip_wen,
+        output wire [1:0] perip_mask,
+        output wire [31:0] perip_wdata,
+        input wire [31:0] perip_rdata
+`endif
     );
+`ifdef SIMULATION
+`else
+    wire rst;
+    wire clk;
+    assign clk = cpu_clk;
+    assign rst = cpu_rst;
+    assign irom_addr = PC_reg;
+
+    assign instr = irom_data;
+    assign perip_addr = mem_addr;
+    assign perip_wen = mem_wen;
+    assign perip_wdata = mem_data_out;
+
+    assign mem_data_in = perip_rdata;
+`endif
+
+    wire [31:0] ALU_DC;
     wire stop_sim;
     wire [31:0] instr;
-    //wire [31:0] ALU_DC;
     wire [31:0] PC_reg;
     wire [31:0] mem_data_in;
     wire [31:0] mem_data_out;
     wire [31:0] mem_addr;
     wire mem_wen;
     wire mem_ren;
-
     wire [31:0] PC_reg_WB; // for test
     datapath datapath1(
                  .clk(clk),
@@ -28,10 +59,15 @@ module npc(
                  .ALUResult_E(ALU_DC),
                  .PC_reg_F(PC_reg),
                  .PC_reg_WB_test(PC_reg_WB), // for test
+                 `ifdef SIMULATION
+                 `else
+                 .mask(perip_mask),
+                 `endif
                  .ebreak(stop_sim)
              );
 
     // output declaration of module memory
+`ifdef SIMULATION
 
     memory u_memory_read(
                .raddr 	(mem_addr  ),
@@ -74,12 +110,12 @@ module npc(
                    cpu_inst = instr;
                endfunction
 
-    import "DPI-C" function void ebreak();
-                always @ (posedge clk) begin
-                    if(stop_sim) begin
-                        ebreak();
-                    end
-                end
+               import "DPI-C" function void ebreak();
+                          always @ (posedge clk) begin
+                              if(stop_sim) begin
+                                  ebreak();
+                              end
+                          end
 
-
-endmodule
+`endif
+                      endmodule
