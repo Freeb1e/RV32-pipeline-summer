@@ -85,7 +85,7 @@ module npc(
                .wdata 	(mem_data_out  ),
                .wmask 	(8'h0F  ),
                .wen   	(mem_wen    ),
-               .valid 	(mem_ren  ),
+               .valid 	(mem_wen  ),
                .rdata 	( )
            );
 

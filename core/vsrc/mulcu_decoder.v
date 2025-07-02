@@ -63,7 +63,7 @@ module mulcu_decoder(
     assign ALU_DB_Src=(opcode==`B_type | opcode==`R_type)?1'b1:1'b0;
 
     assign mem_wen=(opcode==`store)?1'b1:1'b0;
-    assign mem_ren=(opcode==`load | opcode==`store )?1'b1:1'b0;
+    assign mem_ren=(opcode==`load )?1'b1:1'b0;
 
     //00:来自ALU 01:来自data 10:来自PC 11:来自imme
     always@(*) begin
