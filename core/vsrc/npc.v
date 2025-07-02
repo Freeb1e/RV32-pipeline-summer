@@ -48,23 +48,23 @@ module npc(
     wire mem_ren;
     wire [31:0] PC_reg_WB; // for test
     datapath datapath1(
-                 .clk(clk),
-                 .rst(rst),
-                 .instr_F(instr),
-                 .ReadData_M(mem_data_in),
-                 .mem_data_out(mem_data_out),
-                 .mem_addr(mem_addr),
-                 .MemWrite_M(mem_wen),
-                 .MemRead_M(mem_ren),
-                 .ALUResult_E(ALU_DC),
-                 .PC_reg_F(PC_reg),
-                 .PC_reg_WB_test(PC_reg_WB), // for test
-                 `ifdef SIMULATION
-                 `else
-                 .mask(perip_mask),
-                 `endif
-                 .ebreak(stop_sim)
-             );
+        .clk(clk),
+        .rst(rst),
+        .instr_F(instr),
+        .ReadData_M(mem_data_in),
+        .mem_data_out(mem_data_out),
+        .mem_addr(mem_addr),
+        .MemWrite_M(mem_wen),
+        .MemRead_M(mem_ren),
+        .ALUResult_E(ALU_DC),
+        .PC_reg_F(PC_reg),
+        .PC_reg_WB_test(PC_reg_WB), // for test
+        `ifdef SIMULATION
+        `else
+        .mask(perip_mask),
+        `endif
+        .ebreak(stop_sim)
+    );
 
     // output declaration of module memory
 `ifdef SIMULATION
@@ -118,19 +118,21 @@ module npc(
     //assign PC_reg_difftest = PC_reg; // for difftest
     assign PC_reg_difftest = PC_reg_WB; // for difftest
     export "DPI-C" function get_pc_inst;
-               function void get_pc_inst();
-                   output int cpu_pc;
-                   output int cpu_inst;
-                   cpu_pc = PC_reg_difftest;
-                   cpu_inst = instr;
-               endfunction
+        function void get_pc_inst();
+            output int cpu_pc;
+            output int cpu_inst;
+            cpu_pc = PC_reg_difftest;
+            cpu_inst = instr;
+        endfunction
 
-               import "DPI-C" function void ebreak();
-                          always @ (posedge clk) begin
-                              if(stop_sim) begin
-                                  ebreak();
-                              end
-                          end
+    import "DPI-C" function void ebreak();
+        always @ (posedge clk) begin
+            if(stop_sim) begin
+                $display("EBREAK triggered at PC: %h", PC_reg_WB);
+                ebreak();
+            end
+        end
 
 `endif
-                      endmodule
+
+endmodule

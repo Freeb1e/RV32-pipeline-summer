@@ -1,6 +1,6 @@
 # Compiler and flags
 VERILATOR = verilator
-VERILATOR_FLAGS = --cc -D --exe --trace --build -j 4 -O3 --x-assign fast --x-initial fast --noassert -I/home/tomoyo/RV32-pipeline/core/vsrc/
+VERILATOR_FLAGS = --cc -D --exe --trace --build -j 4 -O3 --x-assign fast --x-initial fast --noassert -I$(CPU_HOME)/core/vsrc/
 
 TOPNAME = npc
 BUILD_DIR = ./build
@@ -30,8 +30,8 @@ INCFLAGS = $(addprefix -I, $(INC_PATH))
 CXXFLAGS += $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
 LDFLAGS += -lreadline -ltinfo -ldl -pie
 
-VERILATOR_FLAGS += --debug     # 启用 Verilator 调试
-CXXFLAGS += -g -O0             # 启用 C++ 调试符号和禁用优化
+# VERILATOR_FLAGS += --debug     # 启用 Verilator 调试
+# CXXFLAGS += -g -O0             # 启用 C++ 调试符号和禁用优化
 
 all: sim
 

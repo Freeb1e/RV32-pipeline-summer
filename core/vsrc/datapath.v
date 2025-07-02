@@ -38,6 +38,7 @@ module datapath(
     `else
     assign PC_reg_WB_test=PC_reg_W;
     `endif
+    assign ebreak=ebreak_W;
     //--------------------------
     // 控制信号
     wire RegWrite_D;
@@ -62,6 +63,7 @@ module datapath(
     wire [6:0] opcode_D, opcode_E;
     wire [2:0] funct3_W;
     wire ALU_OverFlow;
+    wire ebreak_D, ebreak_E, ebreak_M, ebreak_W;
 
     wire ALU_ZERO;
 
@@ -112,7 +114,7 @@ module datapath(
                       .ALU_ZERO(ALU_ZERO),
                       .alu_op(ALUControl_D),
                       .imme(imme_D),
-                      .ebreak(ebreak),
+                      .ebreak(ebreak_D),
                       .Rs1(Rs1_D),
                       .Rs2(Rs2_D),
                       .Rd(Rd_D),
@@ -148,6 +150,7 @@ module datapath(
                         .funct3_D     	(funct3_D      ),
                         .reg_ren_D    	(reg_ren_D     ),
                         .opcode_D     	(opcode_D      ),
+                        .ebreak_D     	(ebreak_D      ),
 
                         .RegWrite_E   	(RegWrite_E    ),
                         .ResultSrc_E  	(ResultSrc_E   ),
@@ -161,6 +164,7 @@ module datapath(
                         .funct3_E     	(funct3_E      ),
                         .reg_ren_E    	(reg_ren_E     ),
                         .opcode_E     	(opcode_E      ),
+                        .ebreak_E     	(ebreak_E      ),
 
                         .valid_D      	(valid_D       )
                     );
@@ -176,12 +180,14 @@ module datapath(
                         .MemWrite_E  	(MemWrite_E   ),
                         .MemRead_E   	(MemRead_E    ),
                         .funct3_E    	(funct3_E     ),
+                        .ebreak_E    	(ebreak_E     ),
 
                         .RegWrite_M  	(RegWrite_M   ),
                         .ResultSrc_M 	(ResultSrc_M  ),
                         .MemWrite_M  	(MemWrite_M   ),
                         .MemRead_M   	(MemRead_M    ),
                         .funct3_M    	(funct3_M     ),
+                        .ebreak_M    	(ebreak_M     ),
 
                         .valid_E     	(valid_E      )
                     );
@@ -193,9 +199,11 @@ module datapath(
                         .RegWrite_M  	(RegWrite_M   ),
                         .ResultSrc_M 	(ResultSrc_M  ),
                         .funct3_M    	(funct3_M     ),
+                        .ebreak_M    	(ebreak_M     ),
                         .RegWrite_W  	(RegWrite_W  ),
                         .ResultSrc_W 	(ResultSrc_W  ),
                         .funct3_W    	(funct3_W     ),
+                        .ebreak_W    	(ebreak_W     ),
 
                         .valid_M     	(valid_M      )
                     );
@@ -332,6 +340,7 @@ module datapath(
     //assign PC_src=(Jump_sign)?((jalr_E)?PC_jalr:PC_jump):PC_norm;]
     wire Pre_Wrong;
 
+
     reg jalr_E;
     always@(posedge clk) begin
         if (rst) begin
@@ -341,6 +350,7 @@ module datapath(
             jalr_E <=(flash_E)?1'b0:(valid_D)?jalr_D:jalr_E;
         end
     end
+`ifdef Predict
 `ifdef Predict
     reg [2:0] PC_src_ctrl;
     always@(*) begin

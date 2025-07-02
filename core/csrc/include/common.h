@@ -45,6 +45,7 @@ typedef uint32_t paddr_t;
 typedef uint32_t word_t;
 
 void display_error_msg();
+void statistics_display();
 
 #define ARRLEN(A) (sizeof(A) / sizeof(A[0]))
 

@@ -2,7 +2,7 @@
 #include <memory.h>
 #include <sdb.h>
 
-#define MAX_INST_TO_PRINT 10
+
 int sim_time;
 Vnpc *dut;
 CPU_state state;
@@ -11,6 +11,10 @@ int halt_ret;
 uint32_t halt_pc;
 static bool g_print_step = false;
 char logbuf[128];
+
+/* statistics */
+uint32_t nr_inst = 0;
+uint32_t nr_cycle = 0;
 
 /* trace */
 void write_iringbuf(vaddr_t pc, uint32_t inst);
@@ -37,8 +41,8 @@ void cpu_deinit() {
 }
 
 void single_cycle() {
-  dut->clk = 0; dut->eval(); m_trace->dump(sim_time); sim_time++;
-  dut->clk = 1; dut->eval(); m_trace->dump(sim_time); sim_time++;
+  dut->clk = 0; dut->eval(); if(sim_time<MAX_SIM_TIME) {m_trace->dump(sim_time); sim_time++;}
+  dut->clk = 1; dut->eval(); if(sim_time<MAX_SIM_TIME) {m_trace->dump(sim_time); sim_time++;}
 }
 
 void stop(int code, uint32_t pc) {
@@ -62,24 +66,19 @@ void Cget_pc_inst(uint32_t* pc, uint32_t* inst){
 
 uint32_t pc;
 static uint32_t exec_once() {
-  /* itrace */
-  uint32_t instru;
-  
 
-    /* run a cycle */
- do {
+  /* run a single instrument */
+  do {
     single_cycle();
+    nr_cycle++;
     Cget_pc_inst(&pc, NULL);
   }while (pc==0x00000000);
+  nr_inst++;
 
-  /* ftrace */
+  uint32_t instru;
   instru = paddr_read(pc, 4);
   ftrace(pc, instru);
-
-  // write iringbuf
   write_iringbuf(pc, instru);
-
-  
 
 #ifdef CONFIG_ITRACE
   char *p = logbuf;
@@ -115,7 +114,6 @@ static void trace_and_difftest() {
   #ifdef CONFIG_DIFFTEST
     CPU_reg _this = get_cpu_state();
     difftest_step(_this.pc);
-
   #endif
 }
 
@@ -151,15 +149,16 @@ void cpu_exec(uint64_t n){
   switch (state) {
     case RUNNING: state = STOP; break;
     case ABORT:
-      //display_error_msg();
+      display_error_msg();
     case END: 
     Log("NPC: %s " ANSI_COLOR_BLUE "at pc = " FMT_WORD,
           (state == ABORT ? ANSI_FMT("ABORT", ANSI_COLOR_RED) :
           (halt_ret == 0 ? ANSI_FMT("HIT GOOD TRAP", ANSI_COLOR_GREEN) :
           ANSI_FMT("HIT BAD TRAP", ANSI_COLOR_RED))),
           halt_pc);
+    statistics_display();
       // fall through
-    case QUIT: 
+    case QUIT:
       printf("Execution terminated\n");
       break;
   }

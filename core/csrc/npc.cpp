@@ -2,8 +2,6 @@
 #include <getopt.h>
 #include <sdb.h>
 
-#define MAX_SIM_TIME 100
-
 extern int sim_time;
 extern Vnpc *dut;
 extern CPU_state state;
@@ -11,6 +9,9 @@ extern VerilatedVcdC *m_trace;
 extern char *img_file;
 int is_deinit = 0;
 
+/* statistics */
+extern uint32_t nr_inst;
+extern uint32_t nr_cycle;
 
 /* memory */
 long load_img();
@@ -26,6 +27,8 @@ void init_disasm();
 void init_difftest(char *ref_so_file, long img_size, int port);
 /* trace */
 void display_iringbuf();
+
+
 
 char *elf_file = NULL;
 char *so_file = NULL;
@@ -115,6 +118,15 @@ void display_error_msg(){
     display_iringbuf();
     cpu_deinit();
     is_deinit = 1;
+}
+
+void statistics_display(){
+    printf(ANSI_FMT("Statistics:", ANSI_COLOR_CYAN ANSI_BG_GREEN) "\n");
+    printf("Instructions executed:%u\n", nr_inst);
+    printf("Cycles: %u\n", nr_cycle);
+    if(nr_cycle > 0) {
+        printf("IPC: %.2f\n", (float)nr_inst / nr_cycle);
+    }
 }
 
 int main(int argc, char** argv){

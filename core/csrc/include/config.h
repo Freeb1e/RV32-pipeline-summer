@@ -15,4 +15,5 @@
 //#undef CONFIG_DEVICE
 
 
-
+#define MAX_INST_TO_PRINT 10  
+#define MAX_SIM_TIME 1000000
