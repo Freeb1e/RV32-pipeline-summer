@@ -17,7 +17,6 @@ module datapath(
         output [31:0] PC_reg_F,
         //--------写回阶段指令PC---------
         output wire [31:0] PC_reg_WB_test,
-        // output wire RegWrite_W_test,
 `ifdef SIMULATION
         `else
         output reg [1:0] mask,
@@ -28,22 +27,44 @@ module datapath(
 
     //测试输出信号端口----------
     assign PC_reg_WB_test=PC_reg_W;
-    // assign RegWrite_W_test=RegWrite_W;
     //--------------------------
-
+    // 控制信号
     wire RegWrite_D;
-
+    wire valid_PC, valid_F, valid_D, valid_E, valid_M;
+    wire flash_D, flash_E;
+    wire [3:0] ALUControl_D, ALUControl_E;
+    wire [4:0] Rs1_D, Rs2_D, Rs1_E, Rs2_E, Rd_D, Rd_W, Rd_M, Rd_E;
+    wire Jump_D, Branch_D;
+    wire MemWrite_D, MemWrite_E;
+    wire MemRead_D, MemRead_E;
+    wire ALU_DB_Src_D;
+    wire [1:0] ResultSrc_D, ResultSrc_E, ResultSrc_M, ResultSrc_W;
+    wire [2:0] funct3_D, funct3_E, funct3_M;
+    wire reg_ren_D, reg_ren_E;
+    wire RegWrite_E, RegWrite_M, RegWrite_W;
+    wire auipc_D;
+    wire jalr_D;
+    wire Jump_E;
+    wire Branch_E;
+    wire ALU_DB_Src_E;
+    wire auipc_E;
+    wire [6:0] opcode_D, opcode_E;
+    wire [2:0] funct3_W;
+    wire ALU_OverFlow;
 
     wire ALU_ZERO;
 
-
-    wire valid_F;
-    wire valid_D;
-    wire valid_E;
-    wire valid_M;
-    wire valid_PC;
-    wire flash_D;
-    wire flash_E;
+    // 数据信号
+    wire [31:0] imme_D, imme_E, imme_M, imme_W;
+    wire [31:0] ALUResult_W, ALUResult_M;
+    wire [31:0] rdata1_D, rdata2_D, rdata1_E, rdata2_E, rdata2_M;
+    wire [31:0] PC_reg_D, PC_reg_E;
+    wire [31:0] instr_D;
+    wire [31:0] ReadData_W;
+    wire [31:0] PC_reg_M, PC_reg_W;
+    wire [31:0] ALU_DA, ALU_DB;
+    wire [31:0] ALUResult_E_RAW;
+    
     valid_ctrl u_valid_ctrl(
                    .clk      	(clk       ),
                    .rst      	(rst       ),
@@ -67,18 +88,7 @@ module datapath(
     //--------------------------------------------------------------------------------
 
     // Decoder generate control signal
-    wire [31:0] imme_D;
-    wire [3:0] ALUControl_D;
-    wire [4:0] Rs1_D,Rs2_D,Rd_D;
-    wire Jump_D,Branch_D;
-    wire mem_wen_D;
-    wire mem_ren_D;
-    wire ALU_DB_Src_D;
-    wire [1:0] ResultSrc_D;
-    wire [2:0] funct3_D;
-    wire auipc_D;
-    wire jalr_D;
-    wire reg_ren_D;
+
     mulcu_decoder mulcu1(
                       .instr(instr_D),
                       .ALU_ZERO(ALU_ZERO),
@@ -94,27 +104,15 @@ module datapath(
                       .reg_ren(reg_ren_D),
                       .ALU_DB_Src(ALU_DB_Src_D),
                       .Reg_Src(ResultSrc_D),
-                      .mem_wen(mem_wen_D),
-                      .mem_ren(mem_ren_D),
+                      .mem_wen(MemWrite_D),
+                      .mem_ren(MemRead_D),
                       .auipc(auipc_D),
                       .jalr(jalr_D),
                       .funct3(funct3_D),
                       .opcode(opcode_D)
                   );
     // the control signal between decode and excute
-    wire RegWrite_E;
 
-    wire [1:0] ResultSrc_E;
-    wire MemWrite_E;
-    wire MemRead_E;
-    wire Jump_E;
-    wire Branch_E;
-    wire [3:0] ALUControl_E;
-    wire ALU_DB_Src_E;
-    wire auipc_E;
-    wire [2:0] funct3_E;
-    wire reg_ren_E;
-    wire [6:0] opcode_D,opcode_E;
 
     buffer_D_E_Ctrl u_buffer_D_E_Ctrl(
                         .clk          	(clk           ),
@@ -122,8 +120,8 @@ module datapath(
 
                         .RegWrite_D   	(RegWrite_D    ),
                         .ResultSrc_D  	(ResultSrc_D ),
-                        .MemWrite_D   	(mem_wen_D    ),
-                        .MemRead_D    	(mem_ren_D     ),
+                        .MemWrite_D   	(MemWrite_D   ),
+                        .MemRead_D    	(MemRead_D     ),
                         .Jump_D       	(Jump_D       ),
                         .Branch_D     	(Branch_D    ),
                         .ALUControl_D 	(ALUControl_D  ),
@@ -151,9 +149,7 @@ module datapath(
 
 
     // the control signal between excute and memory
-    wire RegWrite_M;
-    wire [1:0] ResultSrc_M;
-    wire [2:0] funct3_M;
+
     buffer_E_M_ctrl u_buffer_E_M_ctrl(
                         .clk         	(clk          ),
                         .rst         	(rst     ),
@@ -172,9 +168,7 @@ module datapath(
                         .valid_E     	(valid_E      )
                     );
     // the control signal between memory and write back
-    wire RegWrite_W;
-    wire [1:0] ResultSrc_W;
-    wire [2:0] funct3_W;
+
     buffer_M_W_ctrl u_buffer_M_W_ctrl(
                         .clk         	(clk          ),
                         .rst         	(rst          ),
@@ -190,8 +184,7 @@ module datapath(
 
     //--------------------------------------------------------------------------------------------
     // output declaration of module buffer_F_D_data
-    wire [31:0] instr_D;
-    wire [31:0] PC_reg_D;
+
 
     buffer_F_D_data u_buffer_F_D_data(
                         .clk            	(clk             ),
@@ -208,12 +201,7 @@ module datapath(
 
 
     // output declaration of module buffer_D_E_data
-    wire [31:0] PC_reg_E;
-    wire [31:0] imme_E;
-    wire [31:0] rdata1_E;
-    wire [31:0] rdata2_E;
-    wire [4:0] Rd_E;
-    wire [4:0] Rs1_E,Rs2_E;
+
     buffer_D_E_data u_buffer_D_E_data(
                         .clk            	(clk             ),
                         .rst            	(rst  |flash_E   ),
@@ -238,11 +226,7 @@ module datapath(
                     );
 
     // output declaration of module buffer_E_M_data
-    wire [31:0] ALUResult_M;
-    wire [4:0] Rd_M;
-    wire [31:0] imme_M;
-    wire [31:0] rdata2_M;
-    wire [31:0] PC_reg_M;
+
     buffer_E_M_data u_buffer_E_M_data(
                         .clk            	(clk             ),
                         .rst            	(rst      ),
@@ -263,11 +247,7 @@ module datapath(
                     );
 
     // output declaration of module buffer_M_W_data
-    wire [31:0] ALUResult_W;
-    wire [4:0] Rd_W;
-    wire [31:0] ReadData_W;
-    wire [31:0] imme_W;
-    wire [31:0] PC_reg_W;
+
     buffer_M_W_data u_buffer_M_W_data(
                         .clk            	(clk             ),
                         .rst            	(rst             ),
@@ -309,7 +289,7 @@ module datapath(
     assign Jump_sign=Jump_E |( Branch_E & branch_true);
     //assign PC_src=(Jump_sign)?((jalr_E)?PC_jalr:PC_jump):PC_norm;]
     wire Pre_Wrong;
-    
+
     reg jalr_E;
     always@(posedge clk) begin
         if (rst) begin
@@ -319,7 +299,7 @@ module datapath(
             jalr_E <=(flash_E)?1'b0:(valid_D)?jalr_D:jalr_E;
         end
     end
-    `ifdef Predict
+`ifdef Predict
     reg [2:0] PC_src_ctrl;
     always@(*) begin
         PC_src_ctrl={predict_F,Jump_sign,predict_E};
@@ -363,7 +343,7 @@ module datapath(
     assign imme_F=(jal_F)?J_imme_F:(branch_F)?B_imme_F:{32'd4};
     assign PC_branch_jal_F=PC_reg_F+imme_F;
     assign predict_F = ((predict_ctrl) && branch_F) || jal_F;
-    
+
     always@(posedge clk) begin
         if (rst) begin
             predict_D <= 1'b0;
@@ -375,7 +355,7 @@ module datapath(
         end
     end
 
-    reg [1:0] state; 
+    reg [1:0] state;
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             state <= 2'b00; // 初始化为强烈不跳转
@@ -408,16 +388,14 @@ module datapath(
 
     // 根据状态更新分支预测控制信号
     assign predict_ctrl = (state[1] == 1'b1); // MSB 为 1 表示跳转
-    `else
+`else
     assign PC_src=(Jump_sign)?((jalr_E)?PC_jalr:PC_jump):PC_norm;
     assign Pre_Wrong=Jump_sign; //不使用分支预测
 `endif
 
 
     //-----------------EX stage----------------
-    wire [31:0] ALU_DA,ALU_DB;
-    wire ALU_OverFlow;
-    wire [31:0] ALUResult_E_RAW;
+
     ALU ALU1(
             .ALU_DA(ALU_DA),
             .ALU_DB(ALU_DB),
@@ -491,8 +469,7 @@ module datapath(
     assign branch_true=(beq_true | bne_true | blt_true | bge_true | bltu_true | bgeu_true);
     //-----------------Write Back stage----------------
     //-----------------------------------------
-    wire [31:0] rdata1_D;
-    wire [31:0] rdata2_D;
+
     reg  [31:0] rdata_reg_W;
 
     RegisterFile u_RegisterFile(
