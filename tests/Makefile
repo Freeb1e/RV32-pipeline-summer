@@ -29,9 +29,17 @@ run: all
 	@cat $(RESULT)
 	@rm $(RESULT)
 
-gdb: all
+gdb: 
+	@echo "正在启动GDB调试模式..."
+	@if [ -z "$(TEST)" ]; then \
+		echo "请指定要调试的测试，例如: make gdb TEST=add"; \
+		exit 1; \
+	fi
+	@/bin/echo -e "NAME = $(TEST)\nSRCS = tests/$(TEST).c\ninclude $${CPU_HOME}/abstract-machine/Makefile" > Makefile.$(TEST)
+	@make -s -f Makefile.$(TEST) ARCH=$(ARCH) gdb
+	-@rm -f Makefile.$(TEST)
 
 clean:
-	rm -rf Makefile.* build/
+	rm -rf Makefile.* build/ $(CPU_HOME)/core/build
 
 latest:
