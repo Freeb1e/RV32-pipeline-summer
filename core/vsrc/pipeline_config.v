@@ -3,3 +3,4 @@
 `define pipeline_mode
 `define SIMULATION
 `define Predict
+//`define rise

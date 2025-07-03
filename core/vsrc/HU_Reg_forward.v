@@ -19,9 +19,14 @@ module HU_Reg_forward(
         input [31:0] rdata2_E,
 
         output [31:0] ALU_DA,
-        `ifdef forward
+`ifdef forward
         output reg [31:0] Real_rdata2_E,
-        `endif 
+        `ifdef rise
+        input  [4:0] Rd_riseW,
+        input  [31:0] rdata_reg_riseW,
+        input  RegWrite_riseW,
+        `endif
+`endif
         output [31:0] ALU_DB
     );
     reg [31:0] Real_rdata1_E;
@@ -38,7 +43,15 @@ module HU_Reg_forward(
                     Real_rdata1_E = rdata_reg_W;
                 end
                 else begin
-                    Real_rdata1_E = rdata1_E;
+                `ifdef rise
+                    if (RegWrite_riseW&& (Rs1_E == Rd_riseW)) begin
+                        Real_rdata1_E = rdata_reg_riseW;
+                    end
+
+                    else
+                `endif
+
+                        Real_rdata1_E = rdata1_E;
                 end
             end
 
@@ -46,7 +59,7 @@ module HU_Reg_forward(
         else begin
             Real_rdata1_E = 32'b0;
         end
-    end
+        end
 
     always@(*) begin
         if (reg_ren_E) begin
@@ -58,7 +71,15 @@ module HU_Reg_forward(
                     Real_rdata2_E = rdata_reg_W;
                 end
                 else begin
-                    Real_rdata2_E = rdata2_E;
+`ifdef rise
+                    if (RegWrite_riseW&& (Rs2_E == Rd_riseW)) begin
+                        Real_rdata2_E = rdata_reg_riseW;
+                    end
+
+                    else
+`endif
+
+                        Real_rdata2_E = rdata2_E;
                 end
             end
         end
@@ -90,12 +111,13 @@ module HU_Reg_forward(
     always@(*) begin
         if (reg_ren_E) begin
             if(RegWrite_W && (Rs2_E == Rd_W)) begin
-                Real_rdata2_E = rdata_reg_W;end
-                else begin
-                    if(RegWrite_M && (Rs2_E == Rd_M)) begin
-                        Real_rdata2_E = ALUResult_M;
-                    end
-                
+                Real_rdata2_E = rdata_reg_W;
+            end
+            else begin
+                if(RegWrite_M && (Rs2_E == Rd_M)) begin
+                    Real_rdata2_E = ALUResult_M;
+                end
+
                 else begin
                     Real_rdata2_E = rdata2_E;
                 end

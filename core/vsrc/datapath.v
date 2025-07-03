@@ -64,7 +64,7 @@ module datapath(
     wire [31:0] PC_reg_M, PC_reg_W;
     wire [31:0] ALU_DA, ALU_DB;
     wire [31:0] ALUResult_E_RAW;
-    
+
     valid_ctrl u_valid_ctrl(
                    .clk      	(clk       ),
                    .rst      	(rst       ),
@@ -266,11 +266,26 @@ module datapath(
                         .valid        	(valid_M         )
                     );
 
+    reg [4:0] Rd_riseW;
+    reg [31:0] rdata_reg_riseW;
+    reg RegWrite_riseW;
+        always @(posedge clk) begin
+            if (rst) begin
+                Rd_riseW <= 5'b0;
+                rdata_reg_riseW <= 32'b0;
+                RegWrite_riseW <= 1'b0;
+            end
+            else begin
+                Rd_riseW <= Rd_W;
+                rdata_reg_riseW <= rdata_reg_W;
+                RegWrite_riseW <= RegWrite_W;
+                // RegWrite_riseW <= 1'b0;
+            end
+        end
+        //--------------------------------------------------------------------------------------------
 
-    //--------------------------------------------------------------------------------------------
 
-
-    reg [31:0] PC_src;
+        reg [31:0] PC_src;
     wire [31:0] PC_norm,PC_jump,PC_jalr;
     PC PC_1(
            .clk(clk),
@@ -438,6 +453,11 @@ module datapath(
                        .rdata2_E     	(rdata2_E      ),
 `ifdef forward
                        .Real_rdata2_E 	(real_rdata2_E  ),
+`ifdef rise
+                       .Rd_riseW   	(Rd_riseW    ),
+                       .rdata_reg_riseW    (rdata_reg_riseW   ),
+                       .RegWrite_riseW    (RegWrite_riseW   ),
+                       `endif
 `endif
                        .ALU_DA       	(ALU_DA        ),
                        .ALU_DB       	(ALU_DB        )
@@ -473,7 +493,12 @@ module datapath(
     reg  [31:0] rdata_reg_W;
 
     RegisterFile u_RegisterFile(
-                     .clk    	(~clk     ),
+                     
+                     `ifdef rise
+                     .clk    	(clk     ),
+                     `else
+                        .clk    	(~clk     ),
+                        `endif
                      .rst    	(rst     ),
                      .wdata  	(rdata_reg_W   ),
                      .waddr  	(Rd_W   ),
