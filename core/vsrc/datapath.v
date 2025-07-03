@@ -26,7 +26,18 @@ module datapath(
     );
 
     //测试输出信号端口----------
+    `ifdef RAMBUFFER
+    assign PC_reg_WB_test=(flash_w_r)?32'b0:PC_reg_W;
+    reg flash_w_r;
+    always @(posedge clk) begin
+        if (rst)
+            flash_w_r <= 1'b0;
+        else
+            flash_w_r <= flash_W;
+    end
+    `else
     assign PC_reg_WB_test=PC_reg_W;
+    `endif
     //--------------------------
     // 控制信号
     wire RegWrite_D;
@@ -65,6 +76,9 @@ module datapath(
     wire [31:0] ALU_DA, ALU_DB;
     wire [31:0] ALUResult_E_RAW;
 
+    `ifdef RAMBUFFER
+    wire flash_W;
+    `endif
     valid_ctrl u_valid_ctrl(
                    .clk      	(clk       ),
                    .rst      	(rst       ),
@@ -75,7 +89,11 @@ module datapath(
                    .Rs2_D    	(Rs2_D     ),
                    .Rd_E     	(Rd_E      ),
                    .PCSrc_E  	(Pre_Wrong),
-
+`ifdef RAMBUFFER
+                     .MemRead_E  (MemRead_E),
+                     .flash_W    (flash_W),
+                     .MemRead_M  (MemRead_M),
+`endif 
                    .valid_F  	(valid_F   ),
                    .valid_D  	(valid_D   ),
                    .valid_E  	(valid_E   ),
@@ -250,7 +268,11 @@ module datapath(
 
     buffer_M_W_data u_buffer_M_W_data(
                         .clk            	(clk             ),
+                        `ifdef RAMBUFFER
+                        .rst            	(rst | flash_W    ),
+                        `else
                         .rst            	(rst             ),
+                        `endif
                         .ALUResult_M    	(ALUResult_M     ),
                         .ReadData_M    	    (ReadData_M     ),
                         .PC_reg_M 	(PC_reg_M  ),
@@ -270,7 +292,12 @@ module datapath(
     reg [31:0] rdata_reg_riseW;
     reg RegWrite_riseW;
         always @(posedge clk) begin
-            if (rst) begin
+            `ifdef RAMBUFFER
+            if (rst|flash_W )
+            `else
+            if (rst)
+            `endif
+            begin
                 Rd_riseW <= 5'b0;
                 rdata_reg_riseW <= 32'b0;
                 RegWrite_riseW <= 1'b0;
@@ -609,6 +636,9 @@ module datapath(
                     .valid_E        	(valid_E         ),
                     .valid_M        	(valid_M         ),
                     .flash_E        	(flash_E         ),
+                    `ifdef RAMBUFFER
+                    .flash_W        	(flash_W         ),
+                    `endif
                     .instr_W_TR     	(instr_W_TR      ),
                     .instr_M_TR     	(instr_M_TR      )
                 );

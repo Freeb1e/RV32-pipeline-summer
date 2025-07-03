@@ -11,42 +11,60 @@ module valid_ctrl(
         input [4:0] Rd_E,
         input PCSrc_E,
 
+`ifdef RAMBUFFER
+        input MemRead_E,
+        output flash_W,
+        input MemRead_M,
+`endif
         output  valid_F,
-        output reg valid_D,
-        output reg valid_E,
-        output reg valid_M,
+        output  valid_D,
+        output  valid_E,
+        output  valid_M,
         output  valid_PC,
         output flash_D,
         output flash_E
     );
 `ifdef pipeline_mode
 
-    always@(posedge clk) begin
+    wire ResultSrc_E;
+    assign ResultSrc_E = (ResultSrc_E_raw ==2'b01)? 1'b1:1'b0;
+    wire lwstall;
+`ifdef RAMBUFFER
+    wire lwstall_trig;
+    assign lwstall_trig=MemRead_E;
+    reg lwstall_buf;
+    always @(posedge clk) begin
         if (rst) begin
-            //valid_F <= 1'b1;
-            valid_D <= 1'b1;
-            valid_E <= 1'b1;
-            valid_M <= 1'b1;
-            //valid_PC <= 1'b1;
-        end
-        else begin
-            valid_D <= 1'b1;
-            valid_E <= 1'b1;
-            valid_M <= 1'b1;
-            //valid_PC<= 1'b1;
-            //valid_F <= 1'b1;
+            lwstall_buf <= 1'b0;
+        end else begin
+            lwstall_buf <= lwstall_trig;
         end
     end
-    wire lwstall;
+    assign lwstall = lwstall_buf | lwstall_trig;
 
     assign valid_F = ~(lwstall);
     assign valid_PC = ~(lwstall);
+    assign valid_D =1'b1;
+    assign valid_E =~(lwstall_buf);
+    assign valid_M =1'b1;
 
-    wire ResultSrc_E;
-    assign ResultSrc_E = (ResultSrc_E_raw ==2'b01)? 1'b1:1'b0;
-    assign lwstall = (ResultSrc_E && RegWrite_E && ((Rs1_D == Rd_E) || (Rs2_D == Rd_E)));
+    assign flash_D = PCSrc_E;
+    assign flash_E = PCSrc_E| lwstall;
+    assign flash_W = lwstall_buf;
+
+`else
+    assign valid_F = ~(lwstall);
+    assign valid_PC = ~(lwstall);
+    assign lwstall= (ResultSrc_E && RegWrite_E && ((Rs1_D == Rd_E) || (Rs2_D == Rd_E)));
+    assign valid_D = 1'b1;
+    assign valid_E = 1'b1;
+    assign valid_M = 1'b1;
     assign flash_D = PCSrc_E;
     assign flash_E = lwstall|PCSrc_E;
+
+`endif
+
+    
 
 `else
     always@(posedge clk) begin

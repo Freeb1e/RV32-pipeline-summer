@@ -68,17 +68,32 @@ module npc(
 
     // output declaration of module memory
 `ifdef SIMULATION
+`ifdef RAMBUFFER
 
-    memory u_memory_read(
+ reg [31:0] mem_data_in_r;
+ wire [31:0] mem_data_in_1;
+
+    always @(posedge clk) begin
+        if (rst)
+            mem_data_in_r <= 32'b0;
+        else
+            mem_data_in_r <= mem_data_in_1;
+    end
+    assign mem_data_in = mem_data_in_r;
+`endif
+       memory u_memory_read(
                .raddr 	(mem_addr  ),
                .waddr 	(mem_addr  ),
                .wdata 	( ),
                .wmask 	(8'h0F  ),
                .wen   	(1'b0    ),
                .valid 	(mem_ren | mem_wen  ),
-               .rdata 	(mem_data_in  )
+               `ifdef RAMBUFFER
+               .rdata 	(mem_data_in_1  )
+               `else
+                .rdata 	(mem_data_in  )
+                `endif
            );
-
     memory u_memory_write(
                .raddr 	(mem_addr  ),
                .waddr 	(mem_addr  ),
