@@ -9,7 +9,7 @@ module datapath(
         input rst,
         input [31:0] instr_F,
         input [31:0] ReadData_M,
-        output reg [31:0] mem_data_out,
+        output [31:0] mem_data_out,
         output [31:0] mem_addr,
         output MemWrite_M,
         output MemRead_M,
@@ -17,10 +17,10 @@ module datapath(
         output [31:0] PC_reg_F,
         //--------写回阶段指令PC---------
         output wire [31:0] PC_reg_WB_test,
-`ifdef SIMULATION
-        `else
+        `ifndef SIMULATION
         output reg [1:0] mask,
-`endif
+        `endif
+        output reg [7:0] wmask,
         //-------------------------------
         output ebreak
     );
@@ -351,7 +351,6 @@ module datapath(
         end
     end
 `ifdef Predict
-`ifdef Predict
     reg [2:0] PC_src_ctrl;
     always@(*) begin
         PC_src_ctrl={predict_F,Jump_sign,predict_E};
@@ -579,17 +578,17 @@ module datapath(
 
     //-----------------MEM stage----------------
     //-----------------------------------------
+    assign mem_data_out = rdata2_My;
     always @(*) begin
-
         case(funct3_M)
             3'b000:
-                mem_data_out = {ReadData_M[31:8],rdata2_My[7:0]};
+                wmask=8'h01;
             3'b001:
-                mem_data_out = {ReadData_M[31:16],rdata2_My[15:0]};
+                wmask=8'h03;
             3'b010:
-                mem_data_out = rdata2_My;
+                wmask=8'h0F;
             default:
-                mem_data_out = 32'b0;
+                wmask=8'h00;
         endcase
 `ifdef SIMULATION
 `else

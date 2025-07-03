@@ -79,6 +79,12 @@ static void welcome(){
     Log("ITrace: %s", ANSI_FMT("OFF", ANSI_COLOR_RED));
     #endif
 
+    #ifdef CONFIG_MTRACE
+    Log("MTrace: %s", ANSI_FMT("ON", ANSI_COLOR_GREEN));
+    #else
+    Log("MTrace: %s", ANSI_FMT("OFF", ANSI_COLOR_RED));
+    #endif
+
     printf("Welcome to %s-NPC!\n", ANSI_FMT("riscv32", ANSI_COLOR_YELLOW ANSI_BG_RED));
     printf("For help, type \"help\"\n");
 

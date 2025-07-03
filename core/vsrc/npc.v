@@ -21,8 +21,7 @@ module npc(
         input wire [31:0] perip_rdata
 `endif
     );
-`ifdef SIMULATION
-`else
+`ifndef SIMULATION
     wire rst;
     wire clk;
     assign clk = cpu_clk;
@@ -47,6 +46,7 @@ module npc(
     wire mem_wen;
     wire mem_ren;
     wire [31:0] PC_reg_WB; // for test
+    wire [7:0] wmask;
     datapath datapath1(
         .clk(clk),
         .rst(rst),
@@ -59,8 +59,8 @@ module npc(
         .ALUResult_E(ALU_DC),
         .PC_reg_F(PC_reg),
         .PC_reg_WB_test(PC_reg_WB), // for test
-        `ifdef SIMULATION
-        `else
+        .wmask(wmask),
+        `ifndef SIMULATION
         .mask(perip_mask),
         `endif
         .ebreak(stop_sim)
@@ -81,27 +81,14 @@ module npc(
     end
     assign mem_data_in = mem_data_in_r;
 `endif
-       memory u_memory_read(
+       memory u_memory(
                .raddr 	(mem_addr  ),
                .waddr 	(mem_addr  ),
-               .wdata 	( ),
-               .wmask 	(8'h0F  ),
-               .wen   	(1'b0    ),
-               .valid 	(mem_ren | mem_wen  ),
-               `ifdef RAMBUFFER
-               .rdata 	(mem_data_in_1  )
-               `else
-                .rdata 	(mem_data_in  )
-                `endif
-           );
-    memory u_memory_write(
-               .raddr 	(mem_addr  ),
-               .waddr 	(mem_addr  ),
-               .wdata 	(mem_data_out  ),
-               .wmask 	(8'h0F  ),
+               .wdata 	(mem_data_out ),
+               .wmask 	(wmask  ),
                .wen   	(mem_wen    ),
-               .valid 	(mem_wen  ),
-               .rdata 	( )
+               .valid 	(mem_ren | mem_wen ),
+               .rdata 	(mem_data_in  )
            );
 
     memory u_instr(

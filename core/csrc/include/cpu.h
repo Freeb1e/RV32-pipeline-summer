@@ -16,6 +16,11 @@ typedef struct {
     uint32_t pc;
 } CPU_reg;
 
+typedef struct {
+    uint32_t store_pc; // the pc of the instruction that stores this data
+    uint32_t store_data; // the data stored by the instruction
+} memdiff_t;
+
 void cpu_init(const char* Vcd_file);
 void cpu_deinit();
 void single_cycle();

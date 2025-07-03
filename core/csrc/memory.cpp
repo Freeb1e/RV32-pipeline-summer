@@ -6,6 +6,7 @@
 
 char *img_file = NULL;
 extern CPU_state state;
+extern memdiff_t dut_memdiff;
 
 uint8_t pmem[MSIZE] = {
   // 0x00500093 (addi x1, x0, 5)
@@ -70,6 +71,11 @@ bool memory_out_of_bound(uint32_t addr) {
   return false;
 }
 
+bool memory_out_of_inst(uint32_t addr){
+  // insturction memory address: 0x80000000 ~ 0x87ffffff
+  return (addr < 0x80000000 || addr >= 0x87ffffff);
+}
+
 extern "C" int pmem_read(int raddr) {
 
   uint32_t addr = raddr;
@@ -87,7 +93,7 @@ extern "C" int pmem_read(int raddr) {
   //Assert(!memory_out_of_bound(addr), "read address out of bound\n");
   if(memory_out_of_bound(addr)){
     CPU_reg thiss = get_cpu_state();
-    printf(ANSI_BOLD ANSI_COLOR_RED FMT_WORD "read address out of bound\n" ANSI_COLOR_RESET, thiss.pc);
+    printf(ANSI_BOLD ANSI_COLOR_RED FMT_WORD ": read address out of bound\n" ANSI_COLOR_RESET, thiss.pc);
     state = ABORT;
     return 0;
   }
@@ -100,7 +106,7 @@ extern "C" int pmem_read(int raddr) {
     return ret;
   }
   if (last_raddr != raddr || last_ret != ret) {
-    printf("(NPC) " FMT_WORD ":read from " FMT_WORD ", get " FMT_WORD "\n", _this.pc, raddr, ret);
+    if(memory_out_of_inst(raddr)) printf("(NPC) " FMT_WORD ":read from " FMT_WORD ", get " FMT_WORD "\n", _this.pc, raddr, ret);
     last_raddr = raddr;
     last_ret = ret;
   }
@@ -125,10 +131,14 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
   //Assert(!memory_out_of_bound(addr), "write address out of bound\n");
   if(memory_out_of_bound(addr)){
     CPU_reg thiss = get_cpu_state();
-    printf(ANSI_BOLD ANSI_COLOR_RED FMT_WORD ":write address out of bound\n" ANSI_COLOR_RESET,thiss.pc);
+    printf(ANSI_BOLD ANSI_COLOR_RED FMT_WORD ": write address out of bound\n" ANSI_COLOR_RESET,thiss.pc);
     state = ABORT;
     return;
   }
+
+  // Record the memory difference for differential testing
+  // #ifdef CONFIG_DIFFTEST
+  // dut_memdiff.store_pc = 
 
   int *p = (int *)(pmem + addr - MBASE);
   int mask = 0;
@@ -142,7 +152,7 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
 
   #ifdef CONFIG_MTRACE
   CPU_reg _this = get_cpu_state();
-  printf("(NPC) " FMT_WORD ":write " FMT_WORD " to " FMT_WORD "\n", _this.pc, ret, waddr);
+  if(memory_out_of_inst(waddr)) printf("(NPC) " FMT_WORD ":write " FMT_WORD " to " FMT_WORD "\n", _this.pc, ret, waddr);
   #endif
 }
 

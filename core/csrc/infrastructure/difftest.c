@@ -7,6 +7,8 @@
 #define DIFFTEST_TO_REF 1
 #define DIFFTEST_TO_DUT 0
 
+memdiff_t dut_memdiff;
+
 extern CPU_state state;
 extern int halt_ret;
 extern uint32_t halt_pc;
@@ -34,6 +36,9 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
 
   ref_difftest_regcpy = (void (*)(void *, bool))dlsym(handle, "difftest_regcpy");
   assert(ref_difftest_regcpy);
+
+  // ref_difftest_memlogcpy = (void (*)(memdiff_t *))dlsym(handle, "difftest_memlogcpy");
+  // assert(ref_difftest_memlogcpy);
 
   ref_difftest_exec = (void (*)(uint64_t))dlsym(handle, "difftest_exec");
   assert(ref_difftest_exec);
@@ -75,6 +80,16 @@ bool difftest_checkregs(CPU_reg *ref_r, vaddr_t pc) {
   return flag;
 }
 
+bool difftest_checkmem(memdiff_t *ref_memdiff) {
+  // Compare the memory differences
+  if (dut_memdiff.store_pc != ref_memdiff->store_pc ||
+      dut_memdiff.store_data != ref_memdiff->store_data) {
+    Log("Memory mismatch");
+    return false;
+  }
+  return true;
+}
+
 void display_ref_dut_regs(CPU_reg *ref_r){
   CPU_reg this_r = get_cpu_state();
   for (int i = 0; i < 32; i ++) {
@@ -83,9 +98,14 @@ void display_ref_dut_regs(CPU_reg *ref_r){
   Log("PC: ref = " FMT_WORD ", dut = " FMT_WORD, ref_r->pc, this_r.pc);
 }
 
+void display_ref_dut_memlog(memdiff_t *ref_memdiff) {
+  Log("store_pc: ref = " FMT_WORD ", dut = " FMT_WORD, ref_memdiff->store_pc, dut_memdiff.store_pc);
+  Log("store_data: ref = " FMT_WORD ", dut = " FMT_WORD, ref_memdiff->store_data, dut_memdiff.store_data);
+}
+
 static void checkregs(CPU_reg *ref, vaddr_t pc) {
   //display_ref_dut_regs(ref);
-  if (!difftest_checkregs(ref, pc)) {
+  if ((!difftest_checkregs(ref, pc))) {
     state = ABORT;
     halt_pc = pc;
     display_ref_dut_regs(ref);
@@ -93,8 +113,19 @@ static void checkregs(CPU_reg *ref, vaddr_t pc) {
   }
 }
 
+static void checkmem(memdiff_t *ref) {
+  if (!difftest_checkmem(ref)) {
+    state = ABORT;
+    halt_pc = ref->store_pc; // Use store_pc as a reference point for the error
+    Log("Memory mismatch detected at store_pc: " FMT_WORD, ref->store_pc);
+    display_ref_dut_memlog(ref);
+    display_error_msg();
+  }
+}
+
 void difftest_step(vaddr_t pc) {
   CPU_reg ref_r;
+  memdiff_t ref_memdiff;
 
   if (skip_ref) {
     // to skip the checking of an instruction, just copy the reg state to reference design
@@ -105,8 +136,10 @@ void difftest_step(vaddr_t pc) {
   }
   ref_difftest_exec(1);
   ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
+  ref_difftest_memlogcpy(&ref_memdiff);
 
   checkregs(&ref_r, pc);
+  // checkmem(&ref_memdiff);
 }
 #else
 void init_difftest(char *ref_so_file, long img_size, int port) { }

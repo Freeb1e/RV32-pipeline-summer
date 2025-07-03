@@ -1,71 +1,60 @@
-# Compiler and flags
-VERILATOR = verilator
-VERILATOR_FLAGS = --cc -D --exe --trace --build -j 4 -O3 --x-assign fast --x-initial fast --noassert -I$(CPU_HOME)/core/vsrc/
-
 TOPNAME = npc
 BUILD_DIR = ./build
 SIM_DIR = $(abspath ./sim)
 OBJ_DIR = $(BUILD_DIR)/obj_dir
 SIM_OBJ_DIR = $(SIM_DIR)/obj_dir
-BIN = $(BUILD_DIR)/$(TOPNAME)
+BIN = $(BUILD_DIR)/V$(TOPNAME)
+DEBUG_BIN = $(BUILD_DIR)/V$(TOPNAME)_debug
 INC_PATH += $(abspath ./csrc/include) $(abspath ./tools/capstone/repo/include)
 
 $(shell mkdir -p $(BUILD_DIR))
 $(shell mkdir -p $(SIM_DIR) $(SIM_OBJ_DIR))
 
-
 # Project source
 VSRCS=$(shell find $(abspath ./vsrc) -name "*.v" -or -name "*.sv")
-SIM_ALL ?= $(notdir $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp"))
-SIM_CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
-CSRCS= $(SIM_CSRCS) $(SRC_AUTO_BIND)
+CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
+HSRCS = $(shell find $(abspath ./csrc/include) -name "*.h")
 
 LOCAL_ARGS += -d $(CPU_HOME)/core/tools/riscv32-nemu-interpreter-so
 
-# Rules for NVBoard
-# include $(NVBOARD_HOME)/scripts/nvboard.mk
+# Compiler and flags
+VERILATOR = verilator
+VERILATOR_FLAGS = --cc -D --exe --trace --build -j 4 --x-assign fast --x-initial fast --noassert -I$(CPU_HOME)/core/vsrc/
+VERILATOR_FLAGS_RELEASE = $(VERILATOR_FLAGS) -O3
+VERILATOR_FLAGS_DEBUG = $(VERILATOR_FLAGS) --debug -O0
 
-# Rules for verilator
 INCFLAGS = $(addprefix -I, $(INC_PATH))
-CXXFLAGS += $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
+CXXFLAGS_BASE = $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
+CXXFLAGS_RELEASE = $(CXXFLAGS_BASE) -O3
+CXXFLAGS_DEBUG = $(CXXFLAGS_BASE) -g -O0
 LDFLAGS += -lreadline -ltinfo -ldl -pie
 
-# VERILATOR_FLAGS += --debug     # 启用 Verilator 调试
-# CXXFLAGS += -g -O0             # 启用 C++ 调试符号和禁用优化
+all: run
 
-all: sim
-
-
-sim-all:$(addprefix Makefile., $(SIM_ALL))
-	@echo "test list [$(words $(SIM_ALL)) item(s)]:" $(SIM_ALL)
-
-Makefile.%: ./csrc/%
-	@mkdir -p $(SIM_OBJ_DIR)/$(basename $*)
-	$(VERILATOR) $(VERILATOR_FLAGS) --top-module $(basename $*) $(VSRCS) $(abspath $^) --Mdir $(abspath $(SIM_OBJ_DIR)/$(basename $*))
-	$(SIM_OBJ_DIR)/$(basename $*)/V$(TOPNAME) $(ARGS)
-
-sim: $(VSRCS) $(SIM_CSRCS)
-	$(VERILATOR) $(VERILATOR_FLAGS) --top-module $(TOPNAME) $^ \
-	$(addprefix -CFLAGS , $(CXXFLAGS)) $(addprefix -LDFLAGS , $(LDFLAGS)) \
-	--Mdir $(SIM_OBJ_DIR)
-
-	@echo ARGS:$(ARGS)
-	$(SIM_OBJ_DIR)/V$(TOPNAME) $(ARGS) $(LOCAL_ARGS)
-
-$(BIN): $(VSRCS) $(CSRCS) $(NVBOARD_ARCHIVE)
+$(BIN): $(VSRCS) $(CSRCS) $(HSRCS)
 	@rm -rf $(OBJ_DIR)
-	$(VERILATOR) $(VERILATOR_FLAGS) \
-		--top-module $(TOPNAME) $^ \
-		$(addprefix -CFLAGS , $(CXXFLAGS)) $(addprefix -LDFLAGS , $(LDFLAGS)) \
+	@echo "Verilating sources for release..."
+	@$(VERILATOR) $(VERILATOR_FLAGS_RELEASE) \
+		--top-module $(TOPNAME) $(VSRCS) $(CSRCS) \
+		$(addprefix -CFLAGS , $(CXXFLAGS_RELEASE)) $(addprefix -LDFLAGS , $(LDFLAGS)) \
 		--Mdir $(OBJ_DIR) --exe -o $(abspath $(BIN))
 
-run: $(BIN)
-	@$^
+$(DEBUG_BIN): $(VSRCS) $(CSRCS) $(HSRCS)
+	@rm -rf $(OBJ_DIR)
+	@echo "Verilating sources for debug..."
+	@$(VERILATOR) $(VERILATOR_FLAGS_DEBUG) \
+		--top-module $(TOPNAME) $(VSRCS) $(CSRCS) \
+		$(addprefix -CFLAGS , $(CXXFLAGS_DEBUG)) $(addprefix -LDFLAGS , $(LDFLAGS)) \
+		--Mdir $(OBJ_DIR) --exe -o $(abspath $(DEBUG_BIN))
 
-gdb: $(BIN)
+run: $(BIN)
+	@$^ $(ARGS) $(LOCAL_ARGS)
+
+gdb: $(DEBUG_BIN)
+	@echo "Starting GDB debugging for Verilator simulator..."
 	@gdb --args $^ $(ARGS) $(LOCAL_ARGS)
 
 clean:
-	rm -rf $(BUILD_DIR) $(SIM_DIR)
+	rm -rf $(BUILD_DIR) 
 
-.PHONY: all sim run clean
+.PHONY: all sim run gdb clean
