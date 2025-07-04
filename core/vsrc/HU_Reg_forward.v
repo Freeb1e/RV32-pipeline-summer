@@ -36,71 +36,68 @@ module HU_Reg_forward(
 
 `ifdef priority_E
 
-    always@(*) begin
-        if (reg_ren_E) begin
-            if(RegWrite_M && (Rs1_E == Rd_M)) begin
-                Real_rdata1_E = ALUResult_M;
-            end
-            else begin
-                if(RegWrite_W && (Rs1_E == Rd_W)) begin
-                    Real_rdata1_E = rdata_reg_W;
-                end
-                else begin
+    // 优化的前递逻辑 - 使用并行判断减少关键路径
+    wire forward_M_Rs1, forward_W_Rs1, forward_rise_Rs1, forward_buf2_Rs1;
+    wire forward_M_Rs2, forward_W_Rs2, forward_rise_Rs2, forward_buf2_Rs2;
+    
+    // 并行生成所有前递条件
+    assign forward_M_Rs1 = RegWrite_M && (Rs1_E == Rd_M) && (Rs1_E != 5'b0);
+    assign forward_W_Rs1 = RegWrite_W && (Rs1_E == Rd_W) && (Rs1_E != 5'b0);
+    assign forward_M_Rs2 = RegWrite_M && (Rs2_E == Rd_M) && (Rs2_E != 5'b0);
+    assign forward_W_Rs2 = RegWrite_W && (Rs2_E == Rd_W) && (Rs2_E != 5'b0);
+    
 `ifdef rise
-                    if (RegWrite_riseW&& (Rs1_E == Rd_riseW)) begin
-                        Real_rdata1_E = rdata_reg_riseW;
-                    end
+    assign forward_rise_Rs1 = RegWrite_riseW && (Rs1_E == Rd_riseW) && (Rs1_E != 5'b0);
+    assign forward_rise_Rs2 = RegWrite_riseW && (Rs2_E == Rd_riseW) && (Rs2_E != 5'b0);
+`else
+    assign forward_rise_Rs1 = 1'b0;
+    assign forward_rise_Rs2 = 1'b0;
+`endif
 
-                    else
 `ifdef RAMBUFFER
-                        if (RegWrite_buf2 && (Rs1_E == Rd_buf2)) begin
-                            Real_rdata1_E = rdata_reg_buf2;
-                        end
+`ifdef rise
+    assign forward_buf2_Rs1 = RegWrite_buf2 && (Rs1_E == Rd_buf2) && (Rs1_E != 5'b0);
+    assign forward_buf2_Rs2 = RegWrite_buf2 && (Rs2_E == Rd_buf2) && (Rs2_E != 5'b0);
+`else
+    assign forward_buf2_Rs1 = 1'b0;
+    assign forward_buf2_Rs2 = 1'b0;
 `endif
-                        else
+`else
+    assign forward_buf2_Rs1 = 1'b0;
+    assign forward_buf2_Rs2 = 1'b0;
 `endif
 
-
-                        Real_rdata1_E = rdata1_E;
-                end
-            end
-
-        end
-        else begin
+    // Rs1前递逻辑 - 使用优先级编码
+    always@(*) begin
+        if (!reg_ren_E) begin
             Real_rdata1_E = 32'b0;
+        end else if (forward_M_Rs1) begin
+            Real_rdata1_E = ALUResult_M;        // 最高优先级：M级
+        end else if (forward_W_Rs1) begin
+            Real_rdata1_E = rdata_reg_W;        // 次高优先级：W级
+        end else if (forward_rise_Rs1) begin
+            Real_rdata1_E = rdata_reg_riseW;    // 第三优先级：riseW
+        end else if (forward_buf2_Rs1) begin
+            Real_rdata1_E = rdata_reg_buf2;     // 最低优先级：buf2
+        end else begin
+            Real_rdata1_E = rdata1_E;           // 无前递
         end
     end
 
+    // Rs2前递逻辑 - 使用优先级编码
     always@(*) begin
-        if (reg_ren_E) begin
-            if(RegWrite_M && (Rs2_E == Rd_M)) begin
-                Real_rdata2_E = ALUResult_M;
-            end
-            else begin
-                if(RegWrite_W && (Rs2_E == Rd_W)) begin
-                    Real_rdata2_E = rdata_reg_W;
-                end
-                else begin
-`ifdef rise
-                    if (RegWrite_riseW&& (Rs2_E == Rd_riseW)) begin
-                        Real_rdata2_E = rdata_reg_riseW;
-                    end
-
-                    else
-`ifdef RAMBUFFER
-                        if (RegWrite_buf2 && (Rs2_E == Rd_buf2)) begin
-                            Real_rdata2_E = rdata_reg_buf2;
-                        end
-`endif
-                        else
-`endif
-
-                        Real_rdata2_E = rdata2_E;
-                end
-            end
-        end
-        else begin
+        if (!reg_ren_E) begin
             Real_rdata2_E = 32'b0;
+        end else if (forward_M_Rs2) begin
+            Real_rdata2_E = ALUResult_M;        // 最高优先级：M级
+        end else if (forward_W_Rs2) begin
+            Real_rdata2_E = rdata_reg_W;        // 次高优先级：W级
+        end else if (forward_rise_Rs2) begin
+            Real_rdata2_E = rdata_reg_riseW;    // 第三优先级：riseW
+        end else if (forward_buf2_Rs2) begin
+            Real_rdata2_E = rdata_reg_buf2;     // 最低优先级：buf2
+        end else begin
+            Real_rdata2_E = rdata2_E;           // 无前递
         end
     end
 `else
