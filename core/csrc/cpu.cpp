@@ -41,8 +41,8 @@ void cpu_deinit() {
 }
 
 void single_cycle() {
-  dut->clk = 0; dut->eval(); if(sim_time<MAX_SIM_TIME) {m_trace->dump(sim_time); sim_time++;}
-  dut->clk = 1; dut->eval(); if(sim_time<MAX_SIM_TIME) {m_trace->dump(sim_time); sim_time++;}
+  dut->clk = 0; dut->eval(); if(sim_time<MAX_SIM_TIME) {m_trace->dump(sim_time); }sim_time++;
+  dut->clk = 1; dut->eval(); if(sim_time<MAX_SIM_TIME) {m_trace->dump(sim_time); }sim_time++;
 }
 
 void stop(int code, uint32_t pc) {
@@ -74,6 +74,10 @@ static uint32_t exec_once() {
     Cget_pc_inst(&pc, NULL);
   }while (pc==0x00000000);
   nr_inst++;
+
+  if(sim_time%10000 <= 1){
+    printf("sim_time = %d\n", sim_time);
+  }
 
   uint32_t instru;
   instru = paddr_read(pc, 4);

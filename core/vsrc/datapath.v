@@ -288,7 +288,7 @@ module datapath(
                    .PC_reg_W 	      (PC_reg_W        ),
                    .imme_W         	(imme_W          )
                );
-
+`ifdef rise
     reg [4:0] Rd_riseW;
     reg [31:0] rdata_reg_riseW;
     reg RegWrite_riseW,valid_WB_rise_buf;
@@ -306,6 +306,7 @@ module datapath(
             valid_WB_rise_buf <= valid_WB_rise;
         end
     end
+`endif
 `ifdef RAMBUFFER
     reg [4:0] Rd_buf2;
     reg [31:0] rdata_reg_buf2;

@@ -2,6 +2,6 @@
 `define priority_E
 `define pipeline_mode
 `define SIMULATION
-`define Predict
-`define rise
-`define RAMBUFFER
+//`define Predict
+//`define rise
+//`define RAMBUFFER

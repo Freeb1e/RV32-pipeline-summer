@@ -74,12 +74,21 @@ module HU_Reg_forward(
         end else if (forward_M_Rs1) begin
             Real_rdata1_E = ALUResult_M;        // 最高优先级：M级
         end else if (forward_W_Rs1) begin
-            Real_rdata1_E = rdata_reg_W;        // 次高优先级：W级
-        end else if (forward_rise_Rs1) begin
+            Real_rdata1_E = rdata_reg_W;      // 次高优先级：W级
+        end 
+        else 
+        `ifdef rise
+            if (forward_rise_Rs1) begin
             Real_rdata1_E = rdata_reg_riseW;    // 第三优先级：riseW
-        end else if (forward_buf2_Rs1) begin
+        end else 
+        `endif
+        `ifdef RAMBUFFER
+        if (forward_buf2_Rs1) begin
             Real_rdata1_E = rdata_reg_buf2;     // 最低优先级：buf2
-        end else begin
+        end else
+        `endif 
+        begin
+            
             Real_rdata1_E = rdata1_E;           // 无前递
         end
     end
@@ -92,11 +101,18 @@ module HU_Reg_forward(
             Real_rdata2_E = ALUResult_M;        // 最高优先级：M级
         end else if (forward_W_Rs2) begin
             Real_rdata2_E = rdata_reg_W;        // 次高优先级：W级
-        end else if (forward_rise_Rs2) begin
+        end else 
+        `ifdef rise
+        if (forward_rise_Rs2) begin
             Real_rdata2_E = rdata_reg_riseW;    // 第三优先级：riseW
-        end else if (forward_buf2_Rs2) begin
+        end else
+        `endif 
+        `ifdef RAMBUFFER
+         if (forward_buf2_Rs2) begin
             Real_rdata2_E = rdata_reg_buf2;     // 最低优先级：buf2
-        end else begin
+        end else 
+        `endif 
+        begin
             Real_rdata2_E = rdata2_E;           // 无前递
         end
     end
