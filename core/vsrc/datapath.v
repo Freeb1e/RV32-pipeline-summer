@@ -361,62 +361,17 @@ module datapath(
         end
     end
 `ifdef Predict
-    reg [2:0] PC_src_ctrl;
-    always@(*) begin
-        PC_src_ctrl={predict_F,Jump_sign,predict_E};
-        case(PC_src_ctrl)
-            3'b000:
-                PC_src=PC_norm; //现在预测不跳，E阶段判断之前跳转无失误，正常加4
-            3'b001:
-                PC_src=PC_norm_E; //现在预测不跳，之前预测跳错了，E阶段发现不应该跳,使用E阶段的PC+4
-            3'b010:
-                PC_src=(jalr_E)?PC_jalr:PC_jump; //现在预测不跳，之前预测不跳错了，E阶段发现之前应该跳,使用之前应该跳的PC
-            3'b011:
-                PC_src=PC_norm; //现在预测不跳，之前预测应该跳，E阶段发现也应该跳，运行正确，正常加4
-            3'b100:
-                PC_src=PC_branch_jal_F; //现在预测跳，E阶段判断之前跳转无失误，使用预测跳转的地址
-            3'b101:
-                PC_src=PC_norm_E; //现在预测跳，E阶段判断之前跳转错误，使用E阶段的PC+4
-            3'b110:
-                PC_src=(jalr_E)?PC_jalr:PC_jump; //现在预测跳，之前预测不跳，现在发现应该跳，使用跳转的PC
-            3'b111:
-                PC_src=PC_branch_jal_F; //默认正常执行
-        endcase
-
-    end
-
-    assign Pre_Wrong=predict_E^Jump_sign;
-    //分支预测为跳转
-    wire [6:0] opcode_F;
-    assign opcode_F=instr_F[6:0];
-    wire branch_F,jal_F;
-    wire [31:0] I_imme_F,J_imme_F,B_imme_F;
-    wire [31:0] imme_F;
-    wire [31:0] PC_branch_jal_F;
-    wire predict_ctrl,predict_F;
-    reg predict_D,predict_E;
-
-    assign branch_F=(opcode_F==`B_type);
-    assign jal_F=(opcode_F==`jal);
-
-    assign J_imme_F={{12{instr_F[31]}},instr_F[19:12],instr_F[20],instr_F[30:21],1'b0};
-    assign B_imme_F={{20{instr_F[31]}},instr_F[7],instr_F[30:25],instr_F[11:8],1'b0};
-    assign imme_F=(jal_F)?J_imme_F:(branch_F)?B_imme_F:{32'd4};
-    assign PC_branch_jal_F=PC_reg_F+imme_F;
-    assign predict_F = ((predict_ctrl) && branch_F) || jal_F;
-
-    always@(posedge clk) begin
-        if (rst) begin
-            predict_D <= 1'b0;
-            predict_E <= 1'b0;
-        end
-        else begin
-            predict_D <= (flash_D)?1'b0:(valid_F)?predict_F:predict_D;
-            predict_E <= (flash_E)?1'b0:(valid_D)?predict_D:predict_E;
-        end
-    end
-
+    // 优化时序：减少组合逻辑路径深度
+    
+    // 预先计算所有可能的PC值，减少关键路径上的选择器
+    wire [31:0] PC_predicted, PC_corrected;
+    wire need_correction;
+    
+    // 分支预测状态机（保持原有逻辑）
     reg [1:0] state;
+    wire predict_ctrl;
+    assign predict_ctrl = (state[1] == 1'b1); // MSB 为 1 表示跳转
+    
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             state <= 2'b00; // 初始化为强烈不跳转
@@ -424,31 +379,66 @@ module datapath(
         else if (Branch_E) begin // 仅在 EX 阶段为分支指令时更新状态
             case (state)
                 2'b00: // 强烈不跳转
-                    if (Pre_Wrong)
-                        state <= 2'b01; // 转为弱不跳转
-                    else
-                        state <= 2'b00; // 保持强烈不跳转
+                    state <= Pre_Wrong ? 2'b01 : 2'b00;
                 2'b01: // 弱不跳转
-                    if (Pre_Wrong)
-                        state <= 2'b10; // 转为弱跳转
-                    else
-                        state <= 2'b00; // 转为强烈不跳转
+                    state <= Pre_Wrong ? 2'b10 : 2'b00;
                 2'b10: // 弱跳转
-                    if (Pre_Wrong)
-                        state <= 2'b01; // 转为弱不跳转
-                    else
-                        state <= 2'b11; // 转为强烈跳转
+                    state <= Pre_Wrong ? 2'b01 : 2'b11;
                 2'b11: // 强烈跳转
-                    if (Pre_Wrong)
-                        state <= 2'b10; // 转为弱跳转
-                    else
-                        state <= 2'b11; // 保持强烈跳转
+                    state <= Pre_Wrong ? 2'b10 : 2'b11;
             endcase
         end
     end
-
-    // 根据状态更新分支预测控制信号
-    assign predict_ctrl = (state[1] == 1'b1); // MSB 为 1 表示跳转
+    
+    // F级指令解码（减少组合逻辑层数）
+    wire [6:0] opcode_F;
+    wire branch_F, jal_F;
+    wire [31:0] J_imme_F, B_imme_F;
+    wire [31:0] imme_F, PC_branch_jal_F;
+    wire predict_F;
+    reg predict_D, predict_E;
+    
+    assign opcode_F = instr_F[6:0];
+    assign branch_F = (opcode_F == `B_type);
+    assign jal_F = (opcode_F == `jal);
+    
+    // 立即数计算并行化
+    assign J_imme_F = {{12{instr_F[31]}}, instr_F[19:12], instr_F[20], instr_F[30:21], 1'b0};
+    assign B_imme_F = {{20{instr_F[31]}}, instr_F[7], instr_F[30:25], instr_F[11:8], 1'b0};
+    assign imme_F = jal_F ? J_imme_F : B_imme_F;
+    assign PC_branch_jal_F = PC_reg_F + imme_F;
+    assign predict_F = (predict_ctrl && branch_F) || jal_F;
+    
+    // 预测信号流水线传递
+    always@(posedge clk) begin
+        if (rst) begin
+            predict_D <= 1'b0;
+            predict_E <= 1'b0;
+        end
+        else begin
+            predict_D <= flash_D ? 1'b0 : (valid_F ? predict_F : predict_D);
+            predict_E <= flash_E ? 1'b0 : (valid_D ? predict_D : predict_E);
+        end
+    end
+    
+    // 优化的PC选择逻辑：减少关键路径
+    wire correction_needed;
+    wire [31:0] PC_normal_path, PC_correction_path;
+    
+    assign Pre_Wrong = predict_E ^ Jump_sign;
+    assign correction_needed = Pre_Wrong;
+    
+    // 正常路径：预测正确时的PC选择
+    assign PC_normal_path = predict_F ? PC_branch_jal_F : PC_norm;
+    
+    // 修正路径：预测错误时的PC选择  
+    assign PC_correction_path = Jump_sign ? 
+                               (jalr_E ? PC_jalr : PC_jump) : PC_norm_E;
+    
+    // 最终PC选择：只有一级选择器
+    always@(*) begin
+        PC_src = correction_needed ? PC_correction_path : PC_normal_path;
+    end
 `else
     assign PC_src=(Jump_sign)?((jalr_E)?PC_jalr:PC_jump):PC_norm;
     assign Pre_Wrong=Jump_sign; //不使用分支预测
