@@ -332,14 +332,14 @@ module datapath(
 
     reg [31:0] PC_src;
     wire [31:0] PC_norm,PC_jump,PC_jalr;
-    wire pc_valid_out; // 创建一个未使用的信号来接收valid_out
+
     PC PC_1(
            .clk(clk),
            .rst(rst),
            .PC_src(PC_src),
            .PC_reg(PC_reg_F),
            .valid_in(valid_PC),
-           .valid_out(pc_valid_out) // 连接到未使用的信号
+           .valid_out(/* reserved */)
        );
     wire Jump_sign;
     wire [31:0] PC_norm_E;

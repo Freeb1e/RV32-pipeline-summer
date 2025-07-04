@@ -76,7 +76,7 @@ bool memory_out_of_inst(uint32_t addr){
   return (addr < 0x80000000 || addr >= 0x87ffffff);
 }
 
-extern "C" int pmem_read(int raddr) {
+extern "C" int pmem_read(int raddr, char is_IF) {
 
   uint32_t addr = raddr;
   
@@ -106,7 +106,8 @@ extern "C" int pmem_read(int raddr) {
     return ret;
   }
   if (last_raddr != raddr || last_ret != ret) {
-    if(memory_out_of_inst(raddr)) printf("(NPC) " FMT_WORD ":read from " FMT_WORD ", get " FMT_WORD "\n", _this.pc, raddr, ret);
+    if (!is_IF)
+      printf("(NPC) " FMT_WORD ":read from " FMT_WORD ", get " FMT_WORD "\n", _this.pc, raddr, ret);
     last_raddr = raddr;
     last_ret = ret;
   }
@@ -115,7 +116,7 @@ extern "C" int pmem_read(int raddr) {
   return ret;
 }
 
-extern "C" void pmem_write(int waddr, int wdata, char wmask) {
+extern "C" void pmem_write(int waddr, int wdata, char wmask, char is_IF) {
   
   uint32_t addr = waddr;
 
@@ -152,7 +153,7 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
 
   #ifdef CONFIG_MTRACE
   CPU_reg _this = get_cpu_state();
-  if(memory_out_of_inst(waddr)) printf("(NPC) " FMT_WORD ":write " FMT_WORD " to " FMT_WORD "\n", _this.pc, ret, waddr);
+  if(!is_IF) printf("(NPC) " FMT_WORD ":write " FMT_WORD " to " FMT_WORD "\n", _this.pc, ret, waddr);
   #endif
 }
 
