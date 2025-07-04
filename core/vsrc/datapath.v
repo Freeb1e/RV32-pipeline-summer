@@ -1,6 +1,6 @@
 `include "define.v"
 `include "pipeline_config.v"
-`include "buffer_ctrl.v"
+
 `timescale 1ns / 1ps
 module datapath(
 
