@@ -21,11 +21,14 @@ module HU_Reg_forward(
         output [31:0] ALU_DA,
 `ifdef forward
         output reg [31:0] Real_rdata2_E,
-        `ifdef rise
+`ifdef rise
         input  [4:0] Rd_riseW,
         input  [31:0] rdata_reg_riseW,
         input  RegWrite_riseW,
-        `endif
+        input [4:0] Rd_buf2,
+        input [31:0] rdata_reg_buf2,
+        input RegWrite_buf2,
+`endif
 `endif
         output [31:0] ALU_DB
     );
@@ -43,13 +46,20 @@ module HU_Reg_forward(
                     Real_rdata1_E = rdata_reg_W;
                 end
                 else begin
-                `ifdef rise
+`ifdef rise
                     if (RegWrite_riseW&& (Rs1_E == Rd_riseW)) begin
                         Real_rdata1_E = rdata_reg_riseW;
                     end
 
                     else
-                `endif
+`ifdef RAMBUFFER
+                        if (RegWrite_buf2 && (Rs1_E == Rd_buf2)) begin
+                            Real_rdata1_E = rdata_reg_buf2;
+                        end
+`endif
+                        else
+`endif
+
 
                         Real_rdata1_E = rdata1_E;
                 end
@@ -59,7 +69,7 @@ module HU_Reg_forward(
         else begin
             Real_rdata1_E = 32'b0;
         end
-        end
+    end
 
     always@(*) begin
         if (reg_ren_E) begin
@@ -77,6 +87,12 @@ module HU_Reg_forward(
                     end
 
                     else
+`ifdef RAMBUFFER
+                        if (RegWrite_buf2 && (Rs2_E == Rd_buf2)) begin
+                            Real_rdata2_E = rdata_reg_buf2;
+                        end
+`endif
+                        else
 `endif
 
                         Real_rdata2_E = rdata2_E;
