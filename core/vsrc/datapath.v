@@ -1,7 +1,6 @@
 `include "define.v"
 `include "pipeline_config.v"
-//`include "buffer_ctrl.v"
-//`include "buffer_data.v"
+`include "buffer_ctrl.v"
 `timescale 1ns / 1ps
 module datapath(
 
@@ -140,167 +139,155 @@ module datapath(
     // the control signal between decode and excute
 
 
-    buffer_D_E_Ctrl u_buffer_D_E_Ctrl(
-                        .clk          	(clk           ),
-                        .rst          	(rst   |flash_E        ),
+    // 使用合并后的buffer_D_E模块
+    buffer_D_E u_buffer_D_E(
+                   .clk          	(clk           ),
+                   .rst          	(rst   |flash_E        ),
+                   .valid_D      	(valid_D       ),
 
-                        .RegWrite_D   	(RegWrite_D    ),
-                        .ResultSrc_D  	(ResultSrc_D ),
-                        .MemWrite_D   	(MemWrite_D   ),
-                        .MemRead_D    	(MemRead_D     ),
-                        .Jump_D       	(Jump_D       ),
-                        .Branch_D     	(Branch_D    ),
-                        .ALUControl_D 	(ALUControl_D  ),
-                        .ALUSrc_D     	(ALU_DB_Src_D      ),
-                        .auipc_D      	(auipc_D       ),
-                        .funct3_D     	(funct3_D      ),
-                        .reg_ren_D    	(reg_ren_D     ),
-                        .opcode_D     	(opcode_D      ),
-                        .ebreak_D     	(ebreak_D      ),
+                   // 控制信号
+                   .RegWrite_D   	(RegWrite_D    ),
+                   .ResultSrc_D  	(ResultSrc_D ),
+                   .MemWrite_D   	(MemWrite_D   ),
+                   .MemRead_D    	(MemRead_D     ),
+                   .Jump_D       	(Jump_D       ),
+                   .Branch_D     	(Branch_D    ),
+                   .ALUControl_D 	(ALUControl_D  ),
+                   .ALUSrc_D     	(ALU_DB_Src_D      ),
+                   .auipc_D      	(auipc_D       ),
+                   .funct3_D     	(funct3_D      ),
+                   .reg_ren_D    	(reg_ren_D     ),
+                   .opcode_D     	(opcode_D      ),
+                   .ebreak_D     	(ebreak_D      ),
 
-                        .RegWrite_E   	(RegWrite_E    ),
-                        .ResultSrc_E  	(ResultSrc_E   ),
-                        .MemWrite_E   	(MemWrite_E    ),
-                        .MemRead_E    	(MemRead_E     ),
-                        .Jump_E       	(Jump_E        ),
-                        .Branch_E     	(Branch_E      ),
-                        .ALUControl_E 	(ALUControl_E  ),
-                        .ALUSrc_E     	(ALU_DB_Src_E      ),
-                        .auipc_E      	(auipc_E       ),
-                        .funct3_E     	(funct3_E      ),
-                        .reg_ren_E    	(reg_ren_E     ),
-                        .opcode_E     	(opcode_E      ),
-                        .ebreak_E     	(ebreak_E      ),
+                   // 数据
+                   .PC_reg_D       (PC_reg_D        ),
+                   .imme_D         (imme_D          ),
+                   .rdata1_D       (rdata1_D        ),
+                   .rdata2_D       (rdata2_D        ),
+                   .Rd_D           (Rd_D            ),
+                   .Rs1_D          (Rs1_D           ),
+                   .Rs2_D          (Rs2_D           ),
 
-                        .valid_D      	(valid_D       )
-                    );
+                   // 控制信号输出
+                   .RegWrite_E   	(RegWrite_E    ),
+                   .ResultSrc_E  	(ResultSrc_E   ),
+                   .MemWrite_E   	(MemWrite_E    ),
+                   .MemRead_E    	(MemRead_E     ),
+                   .Jump_E       	(Jump_E        ),
+                   .Branch_E     	(Branch_E      ),
+                   .ALUControl_E 	(ALUControl_E  ),
+                   .ALUSrc_E     	(ALU_DB_Src_E      ),
+                   .auipc_E      	(auipc_E       ),
+                   .funct3_E     	(funct3_E      ),
+                   .reg_ren_E    	(reg_ren_E     ),
+                   .opcode_E     	(opcode_E      ),
+                   .ebreak_E     	(ebreak_E      ),
+
+                   // 数据输出
+                   .PC_reg_E       (PC_reg_E        ),
+                   .imme_E         (imme_E          ),
+                   .rdata1_E       (rdata1_E        ),
+                   .rdata2_E       (rdata2_E        ),
+                   .Rd_E           (Rd_E            ),
+                   .Rs1_E          (Rs1_E           ),
+                   .Rs2_E          (Rs2_E           )
+               );
 
 
-    // the control signal between excute and memory
-
-    buffer_E_M_ctrl u_buffer_E_M_ctrl(
-                        .clk         	(clk          ),
-                        .rst         	(rst     ),
-                        .RegWrite_E  	(RegWrite_E   ),
-                        .ResultSrc_E 	(ResultSrc_E  ),
-                        .MemWrite_E  	(MemWrite_E   ),
-                        .MemRead_E   	(MemRead_E    ),
-                        .funct3_E    	(funct3_E     ),
-                        .ebreak_E    	(ebreak_E     ),
-
-                        .RegWrite_M  	(RegWrite_M   ),
-                        .ResultSrc_M 	(ResultSrc_M  ),
-                        .MemWrite_M  	(MemWrite_M   ),
-                        .MemRead_M   	(MemRead_M    ),
-                        .funct3_M    	(funct3_M     ),
-                        .ebreak_M    	(ebreak_M     ),
-
-                        .valid_E     	(valid_E      )
-                    );
-    // the control signal between memory and write back
-
-    buffer_M_W_ctrl u_buffer_M_W_ctrl(
-                        .clk         	(clk          ),
-                        .rst         	(rst          ),
-                        .RegWrite_M  	(RegWrite_M   ),
-                        .ResultSrc_M 	(ResultSrc_M  ),
-                        .funct3_M    	(funct3_M     ),
-                        .ebreak_M    	(ebreak_M     ),
-                        .RegWrite_W  	(RegWrite_W  ),
-                        .ResultSrc_W 	(ResultSrc_W  ),
-                        .funct3_W    	(funct3_W     ),
-                        .ebreak_W    	(ebreak_W     ),
-
-                        .valid_M     	(valid_M      )
-                    );
+    // 注意：控制模块已被合并到统一的流水线缓冲区模块中
 
     //--------------------------------------------------------------------------------------------
     // output declaration of module buffer_F_D_data
 
 
-    buffer_F_D_data u_buffer_F_D_data(
-                        .clk            	(clk             ),
-                        .rst            	(rst     |flash_D         ),
+    // 使用合并后的buffer_F_D模块
+    buffer_F_D u_buffer_F_D(
+                   .clk            	(clk             ),
+                   .rst            	(rst     |flash_D         ),
 
-                        .instr_F        	(instr_F         ),
-                        .PC_reg_F       	(PC_reg_F        ),
+                   .instr_F        	(instr_F         ),
+                   .PC_reg_F       	(PC_reg_F        ),
 
-                        .instr_D        	(instr_D         ),
-                        .PC_reg_D       	(PC_reg_D        ),
+                   .instr_D        	(instr_D         ),
+                   .PC_reg_D       	(PC_reg_D        ),
 
-                        .valid        	(valid_F         )
-                    );
+                   .valid        	    (valid_F         )
+               );
 
+    // 使用合并后的buffer_E_M模块
+    buffer_E_M u_buffer_E_M(
+                   .clk            	(clk             ),
+                   .rst            	(rst             ),
+                   .valid_E        	(valid_E         ),
 
-    // output declaration of module buffer_D_E_data
+                   // 控制信号输入
+                   .RegWrite_E       (RegWrite_E      ),
+                   .ResultSrc_E      (ResultSrc_E     ),
+                   .MemWrite_E       (MemWrite_E      ),
+                   .MemRead_E        (MemRead_E       ),
+                   .funct3_E         (funct3_E        ),
+                   .ebreak_E         (ebreak_E        ),
 
-    buffer_D_E_data u_buffer_D_E_data(
-                        .clk            	(clk             ),
-                        .rst            	(rst  |flash_E   ),
+                   // 数据输入
+                   .ALUResult_E    	(ALUResult_E     ),
+                   .WriteData_E    	(rdata2_E        ),
+                   .Rd_E           	(Rd_E            ),
+                   .PC_reg_E 	      (PC_reg_E        ),
+                   .imme_E         	(imme_E          ),
 
-                        .PC_reg_D       	(PC_reg_D        ),
-                        .imme_D         	(imme_D          ),
-                        .rdata1_D          	(rdata1_D           ),
-                        .rdata2_D          	(rdata2_D           ),
-                        .Rd_D           	(Rd_D            ),
-                        .Rs1_D         	    (Rs1_D          ),
-                        .Rs2_D         	    (Rs2_D          ),
+                   // 控制信号输出
+                   .RegWrite_M       (RegWrite_M      ),
+                   .ResultSrc_M      (ResultSrc_M     ),
+                   .MemWrite_M       (MemWrite_M      ),
+                   .MemRead_M        (MemRead_M       ),
+                   .funct3_M         (funct3_M        ),
+                   .ebreak_M         (ebreak_M        ),
 
-                        .PC_reg_E       	(PC_reg_E        ),
-                        .imme_E         	(imme_E          ),
-                        .rdata1_E          	(rdata1_E           ),
-                        .rdata2_E          	(rdata2_E           ),
-                        .Rd_E           	(Rd_E            ),
-                        .Rs1_E         	    (Rs1_E          ),
-                        .Rs2_E         	    (Rs2_E          ),
+                   // 数据输出
+                   .ALUResult_M    	(ALUResult_M     ),
+                   .WriteData_M    	(rdata2_M        ),
+                   .Rd_M           	(Rd_M            ),
+                   .PC_reg_M 	      (PC_reg_M        ),
+                   .imme_M         	(imme_M          )
+               );
 
-                        .valid        	    (valid_D         )
-                    );
-
-    // output declaration of module buffer_E_M_data
-
-    buffer_E_M_data u_buffer_E_M_data(
-                        .clk            	(clk             ),
-                        .rst            	(rst      ),
-
-                        .ALUResult_E    	(ALUResult_E     ),
-                        .WriteData_E    	(rdata2_E     ),
-                        .Rd_E           	(Rd_E            ),
-                        .PC_reg_E 	        (PC_reg_E  ),
-                        .imme_E         	(imme_E          ),
-
-                        .ALUResult_M    	(ALUResult_M     ),
-                        .WriteData_M    	(rdata2_M     ),
-                        .Rd_M           	(Rd_M            ),
-                        .PC_reg_M 	        (PC_reg_M  ),
-                        .imme_M         	(imme_M          ),
-
-                        .valid        	(valid_E         )
-                    );
-
-    // output declaration of module buffer_M_W_data
-
-    buffer_M_W_data u_buffer_M_W_data(
-                        .clk            	(clk             ),
+    // 使用合并后的buffer_M_W模块
+    buffer_M_W u_buffer_M_W(
+                   .clk            	(clk             ),
 `ifdef RAMBUFFER
-                        .rst            	(rst | flash_W    ),
+                   .rst            	(rst | flash_W    ),
 `else
-                        .rst            	(rst             ),
+                   .rst            	(rst             ),
 `endif
-                        .ALUResult_M    	(ALUResult_M     ),
-                        .ReadData_M    	    (ReadData_M     ),
-                        .PC_reg_M 	(PC_reg_M  ),
-                        .Rd_M           	(Rd_M            ),
-                        .imme_M         	(imme_M          ),
+                   .valid_M        	(valid_M         ),
 
-                        .ALUResult_W    	(ALUResult_W     ),
-                        .ReadData_W    	    (ReadData_W     ),
-                        .Rd_W           	(Rd_W            ),
-                        .PC_reg_W 	        (PC_reg_W  ),
-                        .imme_W         	(imme_W          ),
+                   // 控制信号输入
+                   .RegWrite_M       (RegWrite_M      ),
+                   .ResultSrc_M      (ResultSrc_M     ),
+                   .funct3_M         (funct3_M        ),
+                   .ebreak_M         (ebreak_M        ),
 
-                        .valid        	(valid_M         )
-                    );
+                   // 数据输入
+                   .ALUResult_M    	(ALUResult_M     ),
+                   .ReadData_M    	  (ReadData_M      ),
+                   .PC_reg_M 	      (PC_reg_M        ),
+                   .Rd_M           	(Rd_M            ),
+                   .imme_M         	(imme_M          ),
+
+                   // 控制信号输出
+                   .RegWrite_W       (RegWrite_W      ),
+                   .ResultSrc_W      (ResultSrc_W     ),
+                   .funct3_W         (funct3_W        ),
+                   .ebreak_W         (ebreak_W        ),
+
+                   // 数据输出
+                   .ALUResult_W    	(ALUResult_W     ),
+                   .ReadData_W    	  (ReadData_W      ),
+                   .Rd_W           	(Rd_W            ),
+                   .PC_reg_W 	      (PC_reg_W        ),
+                   .imme_W         	(imme_W          )
+               );
 
     reg [4:0] Rd_riseW;
     reg [31:0] rdata_reg_riseW;
@@ -344,13 +331,14 @@ module datapath(
 
     reg [31:0] PC_src;
     wire [31:0] PC_norm,PC_jump,PC_jalr;
+    wire pc_valid_out; // 创建一个未使用的信号来接收valid_out
     PC PC_1(
            .clk(clk),
            .rst(rst),
            .PC_src(PC_src),
            .PC_reg(PC_reg_F),
            .valid_in(valid_PC),
-           .valid_out()
+           .valid_out(pc_valid_out) // 连接到未使用的信号
        );
     wire Jump_sign;
     wire [31:0] PC_norm_E;

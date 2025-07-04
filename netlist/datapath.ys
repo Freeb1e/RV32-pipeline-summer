@@ -1,0 +1,13 @@
+read_verilog -sv -formal -overwrite {workspace}/core/vsrc/valid_ctrl.v
+read_verilog -sv -formal -overwrite {workspace}/core/vsrc/mulcu_decoder.v
+read_verilog -sv -formal -overwrite {workspace}/core/useless/PC.v
+read_verilog -sv -formal -overwrite {workspace}/core/useless/ALU.v
+read_verilog -sv -formal -overwrite {workspace}/core/useless/MuxKeyWithDefault.v
+read_verilog -sv -formal -overwrite {workspace}/core/useless/MuxKeyInternal.v
+read_verilog -sv -formal -overwrite {workspace}/core/vsrc/HU_Reg_forward.v
+read_verilog -sv -formal -overwrite {workspace}/core/vsrc/RegisterFile.v
+read_verilog -sv -formal -overwrite {workspace}/core/vsrc/instr_trace.v
+read_verilog -sv -formal -overwrite {workspace}/core/vsrc/Reg.v
+read_verilog -sv -formal -overwrite {workspace}/core/vsrc/datapath.v
+design -reset-vlog; proc;
+write_json {workspace}/netlist/datapath.json
