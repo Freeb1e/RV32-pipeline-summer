@@ -14,7 +14,7 @@ module memory(
         if (valid) begin // read or write is requested
             rdata = pmem_read(raddr);
             if (wen) begin // write is requested
-                $display("addr: %h", waddr);
+              //  $display("addr: %h", waddr);
                 pmem_write(waddr, wdata, wmask);
             end
         end

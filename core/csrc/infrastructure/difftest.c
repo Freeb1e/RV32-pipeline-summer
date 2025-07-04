@@ -136,7 +136,7 @@ void difftest_step(vaddr_t pc) {
   }
   ref_difftest_exec(1);
   ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
-  ref_difftest_memlogcpy(&ref_memdiff);
+  // ref_difftest_memlogcpy(&ref_memdiff);
 
   checkregs(&ref_r, pc);
   // checkmem(&ref_memdiff);

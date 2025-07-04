@@ -80,6 +80,9 @@ module npc(
             mem_data_in_r <= mem_data_in_1;
     end
     assign mem_data_in = mem_data_in_r;
+`else
+    wire [31:0] mem_data_in_1;
+    assign mem_data_in = mem_data_in_1; // for simulation
 `endif
        memory u_memory(
                .raddr 	(mem_addr  ),
@@ -88,7 +91,7 @@ module npc(
                .wmask 	(wmask  ),
                .wen   	(mem_wen    ),
                .valid 	(mem_ren | mem_wen ),
-               .rdata 	(mem_data_in  )
+               .rdata 	(mem_data_in_1  )
            );
 
     memory u_instr(
