@@ -1,7 +1,7 @@
 // #define EXPR_DEBUG
 #define CONFIG_ITRACE
- #define CONFIG_DIFFTEST
-#define CONFIG_MTRACE
+#define CONFIG_DIFFTEST
+//#define CONFIG_MTRACE
 #define CONFIG_DEVICE
 
 

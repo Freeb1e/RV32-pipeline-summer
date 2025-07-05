@@ -25,9 +25,6 @@ module HU_Reg_forward(
         input  [4:0] Rd_riseW,
         input  [31:0] rdata_reg_riseW,
         input  RegWrite_riseW,
-        input [4:0] Rd_buf2,
-        input [31:0] rdata_reg_buf2,
-        input RegWrite_buf2,
 `endif
 `endif
         output [31:0] ALU_DB
@@ -36,9 +33,9 @@ module HU_Reg_forward(
 
 `ifdef priority_E
 
-    // 优化的前递逻辑 - 使用并行判断减少关键路径
-    wire forward_M_Rs1, forward_W_Rs1, forward_rise_Rs1, forward_buf2_Rs1;
-    wire forward_M_Rs2, forward_W_Rs2, forward_rise_Rs2, forward_buf2_Rs2;
+    // 简化的前递逻辑 - 只保留M、W、riseW三级前递
+    wire forward_M_Rs1, forward_W_Rs1, forward_rise_Rs1;
+    wire forward_M_Rs2, forward_W_Rs2, forward_rise_Rs2;
     
     // 并行生成所有前递条件
     assign forward_M_Rs1 = RegWrite_M && (Rs1_E == Rd_M) && (Rs1_E != 5'b0);
@@ -54,46 +51,22 @@ module HU_Reg_forward(
     assign forward_rise_Rs2 = 1'b0;
 `endif
 
-`ifdef RAMBUFFER
-`ifdef rise
-    assign forward_buf2_Rs1 = RegWrite_buf2 && (Rs1_E == Rd_buf2) && (Rs1_E != 5'b0);
-    assign forward_buf2_Rs2 = RegWrite_buf2 && (Rs2_E == Rd_buf2) && (Rs2_E != 5'b0);
-`else
-    assign forward_buf2_Rs1 = 1'b0;
-    assign forward_buf2_Rs2 = 1'b0;
-`endif
-`else
-    assign forward_buf2_Rs1 = 1'b0;
-    assign forward_buf2_Rs2 = 1'b0;
-`endif
-
-    // Rs1前递逻辑 - 使用优先级编码
+    // Rs1前递逻辑 - 简化的三级优先级编码
     always@(*) begin
         if (!reg_ren_E) begin
             Real_rdata1_E = 32'b0;
         end else if (forward_M_Rs1) begin
             Real_rdata1_E = ALUResult_M;        // 最高优先级：M级
         end else if (forward_W_Rs1) begin
-            Real_rdata1_E = rdata_reg_W;      // 次高优先级：W级
-        end 
-        else 
-        `ifdef rise
-            if (forward_rise_Rs1) begin
+            Real_rdata1_E = rdata_reg_W;        // 次高优先级：W级
+        end else if (forward_rise_Rs1) begin
             Real_rdata1_E = rdata_reg_riseW;    // 第三优先级：riseW
-        end else 
-        `endif
-        `ifdef RAMBUFFER
-        if (forward_buf2_Rs1) begin
-            Real_rdata1_E = rdata_reg_buf2;     // 最低优先级：buf2
-        end else
-        `endif 
-        begin
-            
+        end else begin
             Real_rdata1_E = rdata1_E;           // 无前递
         end
     end
 
-    // Rs2前递逻辑 - 使用优先级编码
+    // Rs2前递逻辑 - 简化的三级优先级编码
     always@(*) begin
         if (!reg_ren_E) begin
             Real_rdata2_E = 32'b0;
@@ -101,18 +74,9 @@ module HU_Reg_forward(
             Real_rdata2_E = ALUResult_M;        // 最高优先级：M级
         end else if (forward_W_Rs2) begin
             Real_rdata2_E = rdata_reg_W;        // 次高优先级：W级
-        end else 
-        `ifdef rise
-        if (forward_rise_Rs2) begin
+        end else if (forward_rise_Rs2) begin
             Real_rdata2_E = rdata_reg_riseW;    // 第三优先级：riseW
-        end else
-        `endif 
-        `ifdef RAMBUFFER
-         if (forward_buf2_Rs2) begin
-            Real_rdata2_E = rdata_reg_buf2;     // 最低优先级：buf2
-        end else 
-        `endif 
-        begin
+        end else begin
             Real_rdata2_E = rdata2_E;           // 无前递
         end
     end

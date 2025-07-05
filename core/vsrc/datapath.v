@@ -27,7 +27,7 @@ module datapath(
     //测试输出信号端口----------
 `ifdef RAMBUFFER
 
-    assign PC_reg_WB_test=(flash_w_r)?32'b0:PC_reg_W;
+   assign PC_reg_WB_test=(flash_w_r)?32'b0:PC_reg_W;
     reg flash_w_r;
     always @(posedge clk) begin
         if (rst)
@@ -256,9 +256,9 @@ module datapath(
     buffer_M_W u_buffer_M_W(
                    .clk            	(clk             ),
 `ifdef RAMBUFFER
-                   .rst            	(rst | flash_W    ),
+                   .rst            	(rst    ),
 `else
-                   .rst            	(rst             ),
+                   .rst            	(rst           ),
 `endif
                    .valid_M        	(valid_M         ),
 
@@ -291,42 +291,21 @@ module datapath(
 `ifdef rise
     reg [4:0] Rd_riseW;
     reg [31:0] rdata_reg_riseW;
-    reg RegWrite_riseW,valid_WB_rise_buf;
+    reg RegWrite_riseW;
     always @(posedge clk) begin
         if (rst ) begin
             Rd_riseW <= 5'b0;
             rdata_reg_riseW <= 32'b0;
             RegWrite_riseW <= 1'b0;
-            valid_WB_rise_buf <= 1'b0;
         end
-        else if(1'b1) begin
+        else if(~flash_W) begin
             Rd_riseW <= Rd_W;
             rdata_reg_riseW <= rdata_reg_W;
             RegWrite_riseW <= RegWrite_W;
-            valid_WB_rise_buf <= valid_WB_rise;
         end
     end
 `endif
-`ifdef RAMBUFFER
-    reg [4:0] Rd_buf2;
-    reg [31:0] rdata_reg_buf2;
-    reg RegWrite_buf2, valid_WB_buf2;
 
-    always @(posedge clk) begin
-        if (rst) begin
-            Rd_buf2 <= 5'b0;
-            rdata_reg_buf2 <= 32'b0;
-            RegWrite_buf2 <= 1'b0;
-            valid_WB_buf2 <= 1'b0;
-        end
-        else begin
-            Rd_buf2 <= Rd_riseW;
-            rdata_reg_buf2 <= rdata_reg_riseW;
-            RegWrite_buf2 <= RegWrite_riseW;
-            valid_WB_buf2 <= valid_WB_rise_buf;
-        end
-    end
-`endif
     //--------------------------------------------------------------------------------------------
 
 
@@ -363,10 +342,6 @@ module datapath(
     end
 `ifdef Predict
     // 优化时序：减少组合逻辑路径深度
-    
-    // 预先计算所有可能的PC值，减少关键路径上的选择器
-    wire [31:0] PC_predicted, PC_corrected;
-    wire need_correction;
     
     // 分支预测状态机（保持原有逻辑）
     reg [1:0] state;
@@ -423,11 +398,9 @@ module datapath(
     end
     
     // 优化的PC选择逻辑：减少关键路径
-    wire correction_needed;
     wire [31:0] PC_normal_path, PC_correction_path;
     
     assign Pre_Wrong = predict_E ^ Jump_sign;
-    assign correction_needed = Pre_Wrong;
     
     // 正常路径：预测正确时的PC选择
     assign PC_normal_path = predict_F ? PC_branch_jal_F : PC_norm;
@@ -438,7 +411,7 @@ module datapath(
     
     // 最终PC选择：只有一级选择器
     always@(*) begin
-        PC_src = correction_needed ? PC_correction_path : PC_normal_path;
+        PC_src = Pre_Wrong ? PC_correction_path : PC_normal_path;
     end
 `else
     assign PC_src=(Jump_sign)?((jalr_E)?PC_jalr:PC_jump):PC_norm;
@@ -494,9 +467,6 @@ module datapath(
                        .Rd_riseW   	(Rd_riseW    ),
                        .rdata_reg_riseW    (rdata_reg_riseW   ),
                        .RegWrite_riseW    (RegWrite_riseW   ),
-                       .Rd_buf2     (Rd_buf2     ),
-                       .rdata_reg_buf2 (rdata_reg_buf2),
-                       .RegWrite_buf2 (RegWrite_buf2),
 
 
 `endif
@@ -623,8 +593,6 @@ module datapath(
 
     wire [31:0] rdata2_My;
     assign rdata2_My=real_rdata2_M;
-
-    reg [4:0] Rs2_M;
 
     always @(posedge clk) begin
         if (rst) begin
