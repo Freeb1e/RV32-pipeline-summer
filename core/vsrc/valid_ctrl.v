@@ -37,16 +37,19 @@ module valid_ctrl(
 
     wire mem_waiting;  // RAMBUFFER启用时，使用寄存器来跟踪访存等待状态
 
-    reg mem_waiting_buf;  // 用于跟踪当前访存操作状态
+    reg mem_waiting_buf; 
+    reg mem_waiting_bufbuf ;// 用于跟踪当前访存操作状态
     always @(posedge clk) begin
         if (rst) begin
             mem_waiting_buf <= 1'b0;
+            mem_waiting_bufbuf <= 1'b0;
         end
         else begin
             mem_waiting_buf <= mem_waiting;
+            mem_waiting_bufbuf <= mem_waiting_buf;  // 更新buf状态
         end
     end
-    assign mem_waiting =MemRead_M&&(~mem_waiting_buf);
+    assign mem_waiting =MemRead_M&&(~(mem_waiting_bufbuf&&mem_waiting_buf));
 
     wire ready_W, ready_M, ready_E, ready_D, ready_F;
 
