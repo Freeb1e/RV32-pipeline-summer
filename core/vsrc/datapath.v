@@ -297,8 +297,12 @@ module datapath(
             Rd_riseW <= 5'b0;
             rdata_reg_riseW <= 32'b0;
             RegWrite_riseW <= 1'b0;
-        end
-        else if(~flash_W) begin
+        end else
+        `ifdef RAMBUFFER
+         if(~flash_W) 
+        `else
+        `endif
+        begin
             Rd_riseW <= Rd_W;
             rdata_reg_riseW <= rdata_reg_W;
             RegWrite_riseW <= RegWrite_W;
