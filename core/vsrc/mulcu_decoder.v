@@ -8,7 +8,8 @@ module mulcu_decoder(
         output [4:0] Rs1,
         output [4:0] Rs2,
         output [4:0] Rd,
-        output jump,
+        output jal,
+        output jalr,
         output branch,
         output reg_wen,
         output reg_ren,
@@ -17,7 +18,6 @@ module mulcu_decoder(
         output mem_wen,
         output mem_ren,
         output auipc,
-        output jalr,
         output [2:0] funct3,
         output [6:0] opcode
     );
@@ -31,7 +31,7 @@ module mulcu_decoder(
     assign Rs2=instr[24:20];
     assign Rd =instr[11:7];
 
-    wire beq,bne,blt,bge,bltu,bgeu,jal;
+    wire beq,bne,blt,bge,bltu,bgeu;
 
     assign beq=(opcode==`B_type)&&(funct3==3'b000);
     assign bne=(opcode==`B_type)&&(funct3==3'b001);
@@ -49,7 +49,6 @@ module mulcu_decoder(
     assign bltu_true=(bltu & ALU_DC[0]);
     assign bgeu_true=(bgeu & ~ALU_DC[0]);
 */
-    assign jump=(jal | jalr );
     assign branch=( beq | bne | blt | bge| bltu | bgeu);
 
     assign jal=(opcode==`jal);

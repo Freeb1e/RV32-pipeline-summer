@@ -45,11 +45,17 @@ void write_led_data(uint32_t data)
         {
             if (data >> (31-(i * 8 + j)) & 0x1)
             {
-                printf(ANSI_COLOR_GREEN "●" ANSI_COLOR_RESET);
+                if(i%2 == 0)
+                    printf(ANSI_COLOR_RED "● " ANSI_COLOR_RESET);
+                else
+                    printf(ANSI_COLOR_GREEN "● " ANSI_COLOR_RESET);
             }
             else
             {
-                printf(ANSI_COLOR_RED "○" ANSI_COLOR_RESET);
+                if(i%2 == 0)
+                    printf(ANSI_COLOR_RED "○ " ANSI_COLOR_RESET);
+                else
+                    printf(ANSI_COLOR_GREEN "○ " ANSI_COLOR_RESET);
             }
         }
         printf("\n");

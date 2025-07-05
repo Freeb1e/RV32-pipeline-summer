@@ -16,7 +16,7 @@ module BTB(
     );
 
     // BTB参数定义
-    parameter BTB_SIZE = 64;  // BTB表大小，必须是2的幂
+    parameter BTB_SIZE = 128;  // BTB表大小，必须是2的幂
     parameter INDEX_WIDTH = $clog2(BTB_SIZE);  // 索引位宽
     parameter TAG_WIDTH = 32 - INDEX_WIDTH - 2;  // 标签位宽 (PC - 索引位 - 字节偏移)
 
@@ -53,9 +53,16 @@ module BTB(
         end
         else if (valid_in) begin
             // 有新的跳转指令时，更新BTB表
+            // $display("Updating BTB: PC = %h, Target = %h", branch_PC, branch_target);
             btb_valid[update_index] <= 1'b1;
             btb_tags[update_index] <= update_tag;
             btb_targets[update_index] <= branch_target;
+        end
+    end
+
+    always @(hit) begin
+        if(hit) begin
+            // $display("BTB Hit: PC = %h, Target = %h", PC_in, target_addr);
         end
     end
 

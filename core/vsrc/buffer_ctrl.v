@@ -40,7 +40,7 @@ module buffer_D_E(
         input [1:0] ResultSrc_D,
         input MemWrite_D,
         input MemRead_D,
-        input Jump_D,
+        input jal_D,
         input Branch_D,
         input [3:0] ALUControl_D,
         input ALUSrc_D,
@@ -64,7 +64,7 @@ module buffer_D_E(
         output reg [1:0] ResultSrc_E,
         output reg MemWrite_E,
         output reg MemRead_E,
-        output reg Jump_E,
+        output reg jal_E,
         output reg Branch_E,
         output reg [3:0] ALUControl_E,
         output reg ALUSrc_E,
@@ -92,7 +92,7 @@ module buffer_D_E(
             ResultSrc_E <= 2'b0;
             MemWrite_E <= 1'b0;
             MemRead_E <= 1'b0;
-            Jump_E <= 1'b0;
+            jal_E <= 1'b0;
             Branch_E <= 1'b0;
             ALUControl_E <= 4'b0;
             ALUSrc_E <= 1'b0;
@@ -117,7 +117,7 @@ module buffer_D_E(
             ResultSrc_E <= ResultSrc_D;
             MemWrite_E <= MemWrite_D;
             MemRead_E <= MemRead_D;
-            Jump_E <= Jump_D;
+            jal_E <= jal_D;
             Branch_E <= Branch_D;
             ALUControl_E <= ALUControl_D;
             ALUSrc_E <= ALUSrc_D;

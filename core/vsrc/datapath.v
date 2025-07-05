@@ -47,7 +47,7 @@ module datapath(
     wire flash_D, flash_E;
     wire [3:0] ALUControl_D, ALUControl_E;
     wire [4:0] Rs1_D, Rs2_D, Rs1_E, Rs2_E, Rd_D, Rd_W, Rd_M, Rd_E;
-    wire Jump_D, Branch_D;
+    wire Branch_D;
     wire MemWrite_D, MemWrite_E;
     wire MemRead_D, MemRead_E;
     wire ALU_DB_Src_D;
@@ -56,8 +56,8 @@ module datapath(
     wire reg_ren_D, reg_ren_E;
     wire RegWrite_E, RegWrite_M, RegWrite_W;
     wire auipc_D;
+    wire jal_D, jal_E;
     wire jalr_D;
-    wire Jump_E;
     wire Branch_E;
     wire ALU_DB_Src_E;
     wire auipc_E;
@@ -123,7 +123,6 @@ module datapath(
                       .Rs1(Rs1_D),
                       .Rs2(Rs2_D),
                       .Rd(Rd_D),
-                      .jump(Jump_D),
                       .branch(Branch_D),
                       .reg_wen(RegWrite_D),
                       .reg_ren(reg_ren_D),
@@ -132,14 +131,15 @@ module datapath(
                       .mem_wen(MemWrite_D),
                       .mem_ren(MemRead_D),
                       .auipc(auipc_D),
+                      .jal(jal_D),
                       .jalr(jalr_D),
                       .funct3(funct3_D),
                       .opcode(opcode_D)
                   );
-    // the control signal between decode and excute
+    
+    //译码阶段，计算分支指令的目标地址
+    wire [31:0] branch_target = PC_reg_D + imme_D;
 
-
-    // 使用合并后的buffer_D_E模块
     buffer_D_E u_buffer_D_E(
                    .clk          	(clk           ),
                    .rst          	(rst   |flash_E        ),
@@ -150,7 +150,7 @@ module datapath(
                    .ResultSrc_D  	(ResultSrc_D ),
                    .MemWrite_D   	(MemWrite_D   ),
                    .MemRead_D    	(MemRead_D     ),
-                   .Jump_D       	(Jump_D       ),
+                   .jal_D       	(jal_D       ),
                    .Branch_D     	(Branch_D    ),
                    .ALUControl_D 	(ALUControl_D  ),
                    .ALUSrc_D     	(ALU_DB_Src_D      ),
@@ -174,7 +174,7 @@ module datapath(
                    .ResultSrc_E  	(ResultSrc_E   ),
                    .MemWrite_E   	(MemWrite_E    ),
                    .MemRead_E    	(MemRead_E     ),
-                   .Jump_E       	(Jump_E        ),
+                   .jal_E       	(jal_E        ),
                    .Branch_E     	(Branch_E      ),
                    .ALUControl_E 	(ALUControl_E  ),
                    .ALUSrc_E     	(ALU_DB_Src_E      ),
@@ -314,7 +314,7 @@ module datapath(
 
 
     reg [31:0] PC_src;
-    wire [31:0] PC_norm,PC_jump,PC_jalr;
+    wire [31:0] snpc,PC_jump,PC_jalr;
     
     // BTB相关信号
     wire btb_hit;
@@ -326,39 +326,33 @@ module datapath(
     BTB u_BTB(
         .clk(clk),
         .rst(rst),
-        .valid_in(btb_update),           // EX阶段确认为分支指令时更新BTB
-        .branch_PC(PC_reg_E),            // 当前执行的分支指令PC
+        .valid_in(btb_update),           // ID阶段译出分支指令可更新BTB
+        .branch_PC(PC_reg_D),            // 当前执行的分支指令PC
         .branch_target(btb_update_target), // 实际的分支目标地址
         .PC_in(PC_reg_F),                // IF阶段的PC
         .hit(btb_hit),                   // BTB命中信号
         .target_addr(btb_target_addr)    // 预测的分支目标地址
     );
 
-    /* verilator lint_off PINCONNECTEMPTY */
-/* verilator lint_off UNUSEDSIGNAL */
-PC PC_1(
-       .clk(clk),
-       .rst(rst),
-       .PC_src(PC_src),
-       .PC_reg(PC_reg_F),
-       .valid_in(valid_PC),
-       .valid_out() // 未使用但需要连接
-   );
-/* verilator lint_on UNUSEDSIGNAL */
+    PC PC_1(
+        .clk(clk),
+        .rst(rst),
+        .PC_src(PC_src),
+        .PC_reg(PC_reg_F),
+        .valid_in(valid_PC)
+    );
     wire Jump_sign;
     // PC计算
-    assign PC_norm=PC_reg_F+32'd4;
-    assign PC_jump=PC_reg_E+imme_E;
-    assign PC_jalr=imme_E+ALU_DA;
-    assign Jump_sign=Jump_E |( Branch_E & branch_true);
-    
-    // BTB更新逻辑 - 在EX阶段确认分支结果后更新
-    assign btb_update = (Jump_E || (Branch_E & branch_true)) && valid_E;
-    assign btb_update_target = jalr_E ? PC_jalr : PC_jump;
-    
-    //assign PC_src=(Jump_sign)?((jalr_E)?PC_jalr:PC_jump):PC_norm;]
-    wire Pre_Wrong;
+    assign snpc = PC_reg_F + 4; // static next pc
+    assign PC_jump = PC_reg_E + imme_E;
+    assign PC_jalr = imme_E + ALU_DA;
+    assign Jump_sign = jalr_E | jal_E | (Branch_E & branch_true);
 
+    // BTB更新逻辑 - ID阶段译码后可以更新
+    assign btb_update = (Branch_D & valid_D) | jal_D;
+    assign btb_update_target = branch_target;
+
+    wire Pre_Wrong;
 
     reg jalr_E;
     always@(posedge clk) begin
@@ -372,13 +366,11 @@ PC PC_1(
 `ifdef Predict
     
     // 使用BTB进行分支预测
-    wire [31:0] PC_normal_path, PC_correction_path;
+    wire [31:0] PC_predict_path, PC_correction_path;
     
     // 分支预测状态机（方向预测）
     reg [1:0] state;
-    wire predict_ctrl;
-    wire predict_direction;
-    assign predict_ctrl = (state[1] == 1'b1); // MSB 为 1 表示预测跳转
+    wire predict_ctrl = (state[1] == 1'b1); // MSB 为 1 表示预测跳转
     
     // 两位饱和计数器更新逻辑
     always @(posedge clk or posedge rst) begin
@@ -398,15 +390,11 @@ PC PC_1(
             endcase
         end
     end
-    
-    // 将BTB与方向预测器结合
-    reg predict_D, predict_E;
-    wire predict_F;
-    
+
     // 基于BTB和方向预测器进行预测
     // 如果BTB命中，使用方向预测器判断是否跳转
-    // 如果是JAL指令，总是预测跳转
-    assign predict_F = btb_hit && predict_ctrl;
+    reg predict_D, predict_E;
+    wire predict_F = btb_hit && predict_ctrl;
     
     // 预测信号流水线传递
     always@(posedge clk) begin
@@ -420,27 +408,23 @@ PC PC_1(
         end
     end
     
-    // 优化的PC选择逻辑
-    wire correction_needed;
-    
     assign Pre_Wrong = predict_E ^ Jump_sign;
     
     // 正常路径：预测正确时的PC选择
     // 当BTB命中且方向预测为跳转时，使用BTB预测的目标地址
-    assign PC_normal_path = (btb_hit && predict_ctrl) ? btb_target_addr : PC_norm;
+    assign PC_predict_path = (btb_hit && predict_ctrl) ? btb_target_addr : snpc;
     
     // 修正路径：预测错误时的PC选择  
     wire [31:0] PC_next_E;
     assign PC_next_E = PC_reg_E + 32'd4; // 执行阶段PC+4
-    assign PC_correction_path = Jump_sign ? 
-                              (jalr_E ? PC_jalr : PC_jump) : PC_next_E;
+    assign PC_correction_path = Jump_sign ? (jalr_E ? PC_jalr : PC_jump) : PC_next_E;
     
     // 最终PC选择
     always@(*) begin
-        PC_src = Pre_Wrong ? PC_correction_path : PC_normal_path;
+        PC_src = Pre_Wrong ? PC_correction_path : PC_predict_path;
     end
 `else
-    assign PC_src=(Jump_sign)?((jalr_E)?PC_jalr:PC_jump):PC_norm;
+    assign PC_src=(Jump_sign)?((jalr_E)?PC_jalr:PC_jump):snpc;
     assign Pre_Wrong=Jump_sign; //不使用分支预测
 `endif
 
