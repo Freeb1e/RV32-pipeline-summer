@@ -5,3 +5,4 @@
 `define Predict
 `define rise
 `define RAMBUFFER
+`define PERFORMACE_COUNTER

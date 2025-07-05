@@ -3,7 +3,6 @@ module mulcu_decoder(
         input [31:0] instr,
         input ALU_ZERO,
         output [3:0] alu_op,
-        output [31:0] imme,
         output ebreak,
         output [4:0] Rs1,
         output [4:0] Rs2,
@@ -93,11 +92,6 @@ module mulcu_decoder(
                     .opcode(opcode),
                     .alu_op(alu_op)
                 );
-    Imme_decoder Imme_decoder(
-                     .instr(instr),
-                     .imme(imme),
-                     .ebreak(ebreak)
-                 );
 
 
 endmodule
@@ -159,9 +153,13 @@ module Imme_decoder(
         //input [6:0] opcode,
         input [31:0] instr,
         output [31:0] imme,
+        output I_type,
+        output U_type,
+        output J_type,
+        output B_type,
+        output S_type,
         output ebreak
     );
-    wire I_type,U_type,J_type,B_type,S_type;
     wire [31:0] I_imme,U_imme,J_imme,B_imme,S_imme;
 
     assign I_type=(instr[6:0]==`jalr) | (instr[6:0]==`load) | (instr[6:0]==`I_type);
@@ -169,7 +167,7 @@ module Imme_decoder(
     assign J_type=(instr[6:0]==`jal);
     assign B_type=(instr[6:0]==`B_type);
     assign S_type=(instr[6:0]==`store);
-    assign ebreak=(instr==32'h00100073)?1:0;
+    assign ebreak=(instr==32'h00100073 || instr==32'h0000006f)?1:0; // ebreak or j 0
     assign I_imme={{20{instr[31]}},instr[31:20]};
     assign U_imme={instr[31:12],{12{1'b0}}};
     assign J_imme={{12{instr[31]}},instr[19:12],instr[20],instr[30:21],1'b0};

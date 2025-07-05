@@ -64,36 +64,36 @@ void Cget_pc_inst(uint32_t* pc, uint32_t* inst){
   get_pc_inst(pc_ptr, inst_ptr);
 }
 
-uint32_t pc, last_pc;
-static uint32_t exec_once() {
+void Cget_validW(char* validW){
+  svSetScope(svGetScopeFromName("TOP.npc"));
+  get_validW(validW);
+}
 
+uint32_t pc;
+static uint32_t exec_once() {
+  char validW;
   /* run a single instrument */
   do {
     single_cycle();
     nr_cycle++;
-    Cget_pc_inst(&pc, NULL);
-  }while (pc==0x00000000);
+    Cget_validW(&validW);
+  }while (validW == 0);
   nr_inst++;
 
-  if(pc == last_pc) {
-    stop(0, pc);
-    return pc;
-  }
-  last_pc = pc;
-
+  Cget_pc_inst(&pc, NULL);
+  
   if(state == END)
     return pc;
-
-  uint32_t instru;
-  instru = paddr_read(pc, 4);
-  ftrace(pc, instru);
-  write_iringbuf(pc, instru);
 
   // if(sim_time%1000000 <= 1){
   //   printf("sim_time = %d\n", sim_time);
   // }
 
 #ifdef CONFIG_ITRACE
+  uint32_t instru;
+  instru = paddr_read(pc, 4);
+  ftrace(pc, instru);
+  write_iringbuf(pc, instru);
   char *p = logbuf;
   p += snprintf(p, sizeof(logbuf), FMT_WORD ":", pc);
   int ilen = 4;

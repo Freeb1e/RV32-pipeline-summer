@@ -3,9 +3,9 @@
 `timescale 1ns / 1ps
 `ifdef SIMULATION
 module npc(
-    `else
+`else
 module myCPU(
-    `endif
+`endif
 `ifdef SIMULATION
         input clk,
         input rst
@@ -13,16 +13,36 @@ module myCPU(
         input wire cpu_clk,
         input wire cpu_rst,
 
-        // Interface to IROM
-        output wire [31:0] irom_addr,
-        input wire [31:0] irom_data,
+        // AXI4-Lite 指令接口 (Master)
+        output wire [31:0]   inst_axi_araddr,
+        output wire          inst_axi_arvalid,
+        input wire           inst_axi_arready,
+        input wire [31:0]    inst_axi_rdata,
+        input wire [1:0]     inst_axi_rresp,
+        input wire           inst_axi_rvalid,
+        output wire          inst_axi_rready,
 
-        // Interface to DRAM & peripheral
-        output wire [31:0] perip_addr,
-        output wire perip_wen,
-        output wire [1:0] perip_mask,
-        output wire [31:0] perip_wdata,
-        input wire [31:0] perip_rdata
+        // AXI4-Lite 数据接口 (Master)
+        // 读通道
+        output wire [31:0]   data_axi_araddr,
+        output wire          data_axi_arvalid,
+        input wire           data_axi_arready,
+        input wire [31:0]    data_axi_rdata,
+        input wire [1:0]     data_axi_rresp,
+        input wire           data_axi_rvalid,
+        output wire          data_axi_rready,
+        // 写通道
+        output wire [31:0]   data_axi_awaddr,
+        output wire          data_axi_awvalid,
+        input wire           data_axi_awready,
+        output wire [31:0]   data_axi_wdata,
+        output wire [3:0]    data_axi_wstrb,
+        output wire          data_axi_wvalid,
+        input wire           data_axi_wready,
+        input wire [1:0]     data_axi_bresp,
+        input wire           data_axi_bvalid,
+        output wire          data_axi_bready,
+
 `endif
     );
 `ifndef SIMULATION
@@ -30,103 +50,130 @@ module myCPU(
     wire clk;
     assign clk = cpu_clk;
     assign rst = cpu_rst;
-    assign irom_addr = PC_reg;
+`else
+    // SIMULATION 模式下的内部信号
+    wire [31:0] inst_axi_araddr;
+    wire inst_axi_arvalid;
+    wire inst_axi_arready;
+    wire [31:0] inst_axi_rdata;
+    wire [1:0] inst_axi_rresp;
+    wire inst_axi_rvalid;
+    wire inst_axi_rready;
 
-    assign instr = irom_data;
-    assign perip_addr = mem_addr;
-    assign perip_wen = mem_wen;
-    assign perip_wdata = mem_data_out;
+    wire [31:0] data_axi_araddr;
+    wire data_axi_arvalid;
+    wire data_axi_arready;
+    wire [31:0] data_axi_rdata;
+    wire [1:0] data_axi_rresp;
+    wire data_axi_rvalid;
+    wire data_axi_rready;
+    wire [31:0] data_axi_awaddr;
+    wire data_axi_awvalid;
+    wire data_axi_awready;
+    wire [31:0] data_axi_wdata;
+    wire [3:0] data_axi_wstrb;
+    wire data_axi_wvalid;
+    wire data_axi_wready;
+    wire [1:0] data_axi_bresp;
+    wire data_axi_bvalid;
+    wire data_axi_bready;
 
-    assign mem_data_in = perip_rdata;
+    // 模拟AXI响应信号
+    assign inst_axi_arready = 1'b1;
+    assign inst_axi_rvalid = inst_axi_arvalid;
+    assign inst_axi_rresp = 2'b00;
+    assign data_axi_arready = 1'b1;
+    assign data_axi_rvalid = data_axi_arvalid;
+    assign data_axi_rresp = 2'b00;
+    assign data_axi_awready = 1'b1;
+    assign data_axi_wready = 1'b1;
+    assign data_axi_bvalid = 1'b1;
+    assign data_axi_bresp = 2'b00;
+
 `endif
-
-    wire [31:0] ALU_DC;
     wire stop_sim;
-    wire [31:0] instr;
-    wire [31:0] PC_reg;
-    wire [31:0] mem_data_in;
-    wire [31:0] mem_data_out;
-    wire [31:0] mem_addr;
-    wire mem_wen;
-    wire mem_ren;
-    wire [31:0] PC_reg_WB; // for test
-    wire [7:0] wmask;
+
     datapath datapath1(
-        .clk(clk),
-        .rst(rst),
-        .instr_F(instr),
-        .ReadData_M(mem_data_in),
-        .mem_data_out(mem_data_out),
-        .mem_addr(mem_addr),
-        .MemWrite_M(mem_wen),
-        .MemRead_M(mem_ren),
-        .ALUResult_E(ALU_DC),
-        .PC_reg_F(PC_reg),
-        .PC_reg_WB_test(PC_reg_WB), // for test
-        .wmask(wmask),
-        `ifndef SIMULATION
-        .mask(perip_mask),
-        `endif
-        .ebreak(stop_sim)
-    );
+                 .clk(clk),
+                 .rst(rst),
+
+                 // AXI4-Lite 指令接口
+                 .inst_axi_araddr(inst_axi_araddr),
+                 .inst_axi_arvalid(inst_axi_arvalid),
+                 .inst_axi_arready(inst_axi_arready),
+                 .inst_axi_rdata(inst_axi_rdata),
+                 .inst_axi_rresp(inst_axi_rresp),
+                 .inst_axi_rvalid(inst_axi_rvalid),
+                 .inst_axi_rready(inst_axi_rready),
+
+                 // AXI4-Lite 数据接口
+                 .data_axi_araddr(data_axi_araddr),
+                 .data_axi_arvalid(data_axi_arvalid),
+                 .data_axi_arready(data_axi_arready),
+                 .data_axi_rdata(data_axi_rdata),
+                 .data_axi_rresp(data_axi_rresp),
+                 .data_axi_rvalid(data_axi_rvalid),
+                 .data_axi_rready(data_axi_rready),
+                 .data_axi_awaddr(data_axi_awaddr),
+                 .data_axi_awvalid(data_axi_awvalid),
+                 .data_axi_awready(data_axi_awready),
+                 .data_axi_wdata(data_axi_wdata),
+                 .data_axi_wstrb(data_axi_wstrb),
+                 .data_axi_wvalid(data_axi_wvalid),
+                 .data_axi_wready(data_axi_wready),
+                 .data_axi_bresp(data_axi_bresp),
+                 .data_axi_bvalid(data_axi_bvalid),
+                 .data_axi_bready(data_axi_bready),
+                 .PC_W(PC_W),
+                 .valid_W_out(valid_W),
+                 .ebreak(stop_sim)
+             );
 
     // output declaration of module memory
 `ifdef SIMULATION
-`ifdef RAMBUFFER
 
- reg [31:0] mem_data_in_r;
- wire [31:0] mem_data_in_1;
-
-    always @(posedge clk) begin
-        if (rst)
-            mem_data_in_r <= 32'b0;
-        else
-            mem_data_in_r <= mem_data_in_1;
-    end
-    assign mem_data_in = mem_data_in_r;
-`else
-    wire [31:0] mem_data_in_1;
-    assign mem_data_in = mem_data_in_1; // for simulation
-`endif
     memory #(.IS_IF(0)) u_memory(
-            .raddr 	(mem_addr  ),
-            .waddr 	(mem_addr  ),
-            .wdata 	(mem_data_out ),
-            .wmask 	(wmask  ),
-            .wen   	(mem_wen    ),
-            .valid 	(mem_ren | mem_wen ),
-            .rdata 	(mem_data_in_1  )
-        );
-
-    memory #(.IS_IF(1)) u_instr(
-               .raddr 	(PC_reg  ),
-               .waddr 	(mem_addr  ),
-               .wdata 	(32'b0  ),
-               .wmask 	(8'h0F  ),
-               .wen   	(1'b0    ),
-               .valid 	(~rst  ),
-               .rdata 	(instr )
+               .raddr 	(data_axi_araddr  ),     // 使用AXI数据地址
+               .waddr 	(data_axi_awaddr  ),     // 使用AXI写地址
+               .wdata 	(data_axi_wdata   ),     // 使用AXI写数据
+               .wmask 	({4'h0, data_axi_wstrb}  ),
+               .wen   	(data_axi_awvalid ),     // 使用AXI写有效信号
+               .valid 	(data_axi_arvalid | data_axi_awvalid ), // 读或写有效
+               .rdata 	(data_axi_rdata  )
            );
 
-    wire [31:0] PC_reg_difftest;
-    //assign PC_reg_difftest = PC_reg; // for difftest
-    assign PC_reg_difftest = PC_reg_WB; // for difftest
+    memory #(.IS_IF(1)) u_instr(
+               .raddr 	(inst_axi_araddr  ),     // 使用AXI指令地址
+               .waddr 	(32'b0  ),               // 指令内存不写
+               .wdata 	(32'b0  ),
+               .wmask 	(8'h00  ),               // 指令内存不写
+               .wen   	(1'b0    ),
+               .valid 	(inst_axi_arvalid ),     // 使用AXI指令读有效
+               .rdata 	(inst_axi_rdata  ) 
+           );
+
+    wire [31:0] PC_W;
+    wire valid_W;
     export "DPI-C" function get_pc_inst;
-        function void get_pc_inst();
-            output int cpu_pc;
-            output int cpu_inst;
-            cpu_pc = PC_reg_difftest;
-            cpu_inst = instr;
-        endfunction
+               function void get_pc_inst();
+                   output int cpu_pc;
+                   output int cpu_inst;
+                   cpu_pc = PC_W;
+                   cpu_inst = inst_axi_rdata;
+               endfunction
+    export "DPI-C" function get_validW;
+                function void get_validW();
+                     output byte validW;
+                     validW = {7'b0,valid_W};
+                endfunction
 
     import "DPI-C" function void ebreak();
-        always @ (posedge clk) begin
-            if(stop_sim) begin
-                $display("EBREAK triggered at PC: %h", PC_reg_WB);
-                ebreak();
-            end
-        end
-
+                always @ (posedge clk) begin
+                    if(stop_sim) begin
+                        $display("EBREAK triggered at PC: %h", PC_W);
+                        ebreak();
+                    end
+                end
 `endif
 
 endmodule

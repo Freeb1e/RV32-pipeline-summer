@@ -66,6 +66,7 @@ long load_img() {
 bool memory_out_of_bound(uint32_t addr) {
   if (addr < MBASE || addr >= MBASE + MSIZE) {
     printf("Memory access out of bound: addr = 0x%08x\n", addr);
+
     return true;
   }
   return false;

@@ -9,20 +9,27 @@ module buffer_F_D(
         input rst,
         input [31:0] instr_F,
         input [31:0] PC_reg_F,
-        input valid,
+        input predict_F,
+
         output reg [31:0] instr_D,
-        output reg [31:0] PC_reg_D
+        output reg [31:0] PC_reg_D,
+        output reg predict_D,
+
+        input valid_F,
+        input ready_D
     );
 
     // 数据通路合并到always块中
     always @(posedge clk) begin
         if (rst) begin
             instr_D <= 32'b0;
-            PC_reg_D <= 32'b0;
+            PC_reg_D <= 32'h8000_0000;
+            predict_D <= 1'b0; // 复位预测信号
         end
-        else if (valid) begin
+        else if (valid_F & ready_D) begin
             instr_D <= instr_F;
             PC_reg_D <= PC_reg_F;
+            predict_D <= predict_F; // 直接传递预测信号
         end
     end
 
@@ -34,6 +41,7 @@ module buffer_D_E(
         input clk,
         input rst,
         input valid_D,
+        input ready_E,
 
         // 控制信号输入
         input RegWrite_D,
@@ -48,7 +56,10 @@ module buffer_D_E(
         input [2:0] funct3_D,
         input reg_ren_D,
         input [6:0] opcode_D,
+        input jalr_D,
+        input predict_D,
         input ebreak_D,
+        input [4:0] type_D,
 
         // 数据通路输入
         input [31:0] PC_reg_D,
@@ -72,7 +83,10 @@ module buffer_D_E(
         output reg [2:0] funct3_E,
         output reg reg_ren_E,
         output reg [6:0] opcode_E,
+        output reg jalr_E,
+        output reg predict_E,
         output reg ebreak_E,
+        output reg [4:0] type_E,
 
         // 数据通路输出
         output reg [31:0] PC_reg_E,
@@ -100,10 +114,13 @@ module buffer_D_E(
             funct3_E <= 3'b0;
             reg_ren_E <= 1'b0;
             opcode_E <= 7'b0;
+            jalr_E <= 1'b0;
+            predict_E <= 1'b0;
             ebreak_E <= 1'b0;
+            type_E <= 5'b0;
 
             // 数据通路复位
-            PC_reg_E <= 32'b0;
+            PC_reg_E <= 32'h8000_0000;
             imme_E <= 32'b0;
             rdata1_E <= 32'b0;
             rdata2_E <= 32'b0;
@@ -111,7 +128,7 @@ module buffer_D_E(
             Rs1_E <= 5'b0;
             Rs2_E <= 5'b0;
         end
-        else if (valid_D) begin
+        else if (valid_D & ready_E) begin
             // 控制信号赋值
             RegWrite_E <= RegWrite_D;
             ResultSrc_E <= ResultSrc_D;
@@ -125,7 +142,10 @@ module buffer_D_E(
             funct3_E <= funct3_D;
             reg_ren_E <= reg_ren_D;
             opcode_E <= opcode_D;
+            jalr_E <= jalr_D;
+            predict_E <= predict_D;
             ebreak_E <= ebreak_D;
+            type_E <= type_D;
 
             // 数据通路赋值
             PC_reg_E <= PC_reg_D;
@@ -147,6 +167,7 @@ module buffer_E_M(
         input clk,
         input rst,
         input valid_E,
+        input ready_M,
 
         // 控制信号输入
         input RegWrite_E,
@@ -155,6 +176,7 @@ module buffer_E_M(
         input MemRead_E,
         input [2:0] funct3_E,
         input ebreak_E,
+        input [4:0] type_E,
 
         // 数据通路输入
         input [31:0] ALUResult_E,
@@ -170,6 +192,7 @@ module buffer_E_M(
         output reg MemRead_M,
         output reg [2:0] funct3_M,
         output reg ebreak_M,
+        output reg [4:0] type_M,
 
         // 数据通路输出
         output reg [31:0] ALUResult_M,
@@ -189,15 +212,16 @@ module buffer_E_M(
             MemRead_M <= 1'b0;
             funct3_M <= 3'b0;
             ebreak_M <= 1'b0;
+            type_M <= 5'b0;
 
             // 数据通路复位
             ALUResult_M <= 32'b0;
             WriteData_M <= 32'b0;
             Rd_M <= 5'b0;
-            PC_reg_M <= 32'b0;
+            PC_reg_M <= 32'h80000000;
             imme_M <= 32'b0;
         end
-        else if (valid_E) begin
+        else if (valid_E & ready_M) begin
             // 控制信号赋值
             RegWrite_M <= RegWrite_E;
             ResultSrc_M <= ResultSrc_E;
@@ -205,6 +229,7 @@ module buffer_E_M(
             MemRead_M <= MemRead_E;
             funct3_M <= funct3_E;
             ebreak_M <= ebreak_E;
+            type_M <= type_E;
 
             // 数据通路赋值
             ALUResult_M <= ALUResult_E;
@@ -223,12 +248,14 @@ module buffer_M_W(
         input clk,
         input rst,
         input valid_M,
+        input ready_W,
 
         // 控制信号输入
         input RegWrite_M,
         input [1:0] ResultSrc_M,
         input [2:0] funct3_M,
         input ebreak_M,
+        input [4:0] type_M,
 
         // 数据通路输入
         input [31:0] ALUResult_M,
@@ -242,6 +269,7 @@ module buffer_M_W(
         output reg [1:0] ResultSrc_W,
         output reg [2:0] funct3_W,
         output reg ebreak_W,
+        output reg [4:0] type_W,
 
         // 数据通路输出
         output reg [31:0] ALUResult_W,
@@ -259,6 +287,7 @@ module buffer_M_W(
             ResultSrc_W <= 2'b0;
             funct3_W <= 3'b0;
             ebreak_W <= 1'b0;
+            type_W <= 5'b0;
 
             // 数据通路复位
             ALUResult_W <= 32'b0;
@@ -267,12 +296,13 @@ module buffer_M_W(
             PC_reg_W <= 32'h8000_0000; // 注意：此寄存器有特殊的复位值
             imme_W <= 32'b0;
         end
-        else if (valid_M) begin
+        else if (valid_M & ready_W) begin
             // 控制信号赋值
             RegWrite_W <= RegWrite_M;
             ResultSrc_W <= ResultSrc_M;
             funct3_W <= funct3_M;
             ebreak_W <= ebreak_M;
+            type_W <= type_M;
 
             // 数据通路赋值
             ALUResult_W <= ALUResult_M;
