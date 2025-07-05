@@ -100,6 +100,7 @@ module datapath(
                    .flash_W    (flash_W),
                    .MemRead_M  (MemRead_M),
                    .valid_WB_rise	(valid_WB_rise),
+                   .MemWrite_M (MemWrite_M),
 `endif
                    .valid_F  	(valid_F   ),
                    .valid_D  	(valid_D   ),
@@ -602,7 +603,7 @@ module datapath(
         if (rst) begin
             real_rdata2_M<=32'b0;
         end
-        else begin
+        else if(valid_E)begin
             real_rdata2_M<=real_rdata2_E;
         end
     end

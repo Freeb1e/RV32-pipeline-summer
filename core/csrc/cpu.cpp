@@ -75,9 +75,9 @@ static uint32_t exec_once() {
   }while (pc==0x00000000);
   nr_inst++;
 
-  if(sim_time%10000 <= 1){
-    printf("sim_time = %d\n", sim_time);
-  }
+  // if(sim_time%10000 <= 1){
+  //   printf("sim_time = %d\n", sim_time);
+  // }
 
   uint32_t instru;
   instru = paddr_read(pc, 4);

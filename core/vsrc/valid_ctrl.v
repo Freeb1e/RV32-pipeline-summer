@@ -16,6 +16,7 @@ module valid_ctrl(
         output flash_W,
         input MemRead_M,
         output valid_WB_rise,
+        input MemWrite_M,
 `endif
         output  valid_F,
         output  valid_D,
@@ -49,7 +50,7 @@ module valid_ctrl(
             mem_waiting_bufbuf <= mem_waiting_buf;  // 更新buf状态
         end
     end
-    assign mem_waiting =MemRead_M&&(~(mem_waiting_bufbuf&&mem_waiting_buf));
+    assign mem_waiting =(MemRead_M||MemWrite_M)&&(~(mem_waiting_bufbuf&&mem_waiting_buf));
 
     wire ready_W, ready_M, ready_E, ready_D, ready_F;
 
