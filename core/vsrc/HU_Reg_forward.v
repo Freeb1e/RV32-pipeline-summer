@@ -51,7 +51,7 @@ module HU_Reg_forward(
     assign forward_rise_Rs2 = 1'b0;
 `endif
 
-    // Rs1前递逻辑 - 简化的三级优先级编码
+    // Rs1前递逻辑 - 可配置的优先级编码
     always@(*) begin
         if (!reg_ren_E) begin
             Real_rdata1_E = 32'b0;
@@ -59,14 +59,18 @@ module HU_Reg_forward(
             Real_rdata1_E = ALUResult_M;        // 最高优先级：M级
         end else if (forward_W_Rs1) begin
             Real_rdata1_E = rdata_reg_W;        // 次高优先级：W级
-        end else if (forward_rise_Rs1) begin
-            Real_rdata1_E = rdata_reg_riseW;    // 第三优先级：riseW
-        end else begin
+        end 
+`ifdef rise
+        else if (forward_rise_Rs1) begin
+            Real_rdata1_E = rdata_reg_riseW;    // 第三优先级：riseW (仅在定义rise时启用)
+        end 
+`endif
+        else begin
             Real_rdata1_E = rdata1_E;           // 无前递
         end
     end
 
-    // Rs2前递逻辑 - 简化的三级优先级编码
+    // Rs2前递逻辑 - 可配置的优先级编码
     always@(*) begin
         if (!reg_ren_E) begin
             Real_rdata2_E = 32'b0;
@@ -74,9 +78,13 @@ module HU_Reg_forward(
             Real_rdata2_E = ALUResult_M;        // 最高优先级：M级
         end else if (forward_W_Rs2) begin
             Real_rdata2_E = rdata_reg_W;        // 次高优先级：W级
-        end else if (forward_rise_Rs2) begin
-            Real_rdata2_E = rdata_reg_riseW;    // 第三优先级：riseW
-        end else begin
+        end 
+`ifdef rise
+        else if (forward_rise_Rs2) begin
+            Real_rdata2_E = rdata_reg_riseW;    // 第三优先级：riseW (仅在定义rise时启用)
+        end 
+`endif
+        else begin
             Real_rdata2_E = rdata2_E;           // 无前递
         end
     end

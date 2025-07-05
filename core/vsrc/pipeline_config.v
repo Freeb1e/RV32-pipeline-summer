@@ -4,4 +4,4 @@
 `define SIMULATION
 `define Predict
 `define rise
-//`define RAMBUFFER
+`define RAMBUFFER
