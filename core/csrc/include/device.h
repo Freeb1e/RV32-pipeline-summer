@@ -24,5 +24,11 @@ uint64_t get_time();
 #define DISK_ADDR       (MMIO_BASE + 0x0000300)
 #define FB_ADDR         (MMIO_BASE   + 0x1000000)
 #define AUDIO_SBUF_ADDR (MMIO_BASE   + 0x1200000)
+#define SEG_ADDR 0x80200020
+#define LED_ADDR 0x80200040
+#define CNT_ADDR 0x80200050
+
+uint32_t mmio_read(paddr_t addr);
+void mmio_write(paddr_t addr, uint32_t data);
 
 #endif

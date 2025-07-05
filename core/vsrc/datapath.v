@@ -315,22 +315,47 @@ module datapath(
 
     reg [31:0] PC_src;
     wire [31:0] PC_norm,PC_jump,PC_jalr;
+    
+    // BTB相关信号
+    wire btb_hit;
+    wire [31:0] btb_target_addr;
+    wire btb_update;
+    wire [31:0] btb_update_target;
+    
+    // BTB实例化
+    BTB u_BTB(
+        .clk(clk),
+        .rst(rst),
+        .valid_in(btb_update),           // EX阶段确认为分支指令时更新BTB
+        .branch_PC(PC_reg_E),            // 当前执行的分支指令PC
+        .branch_target(btb_update_target), // 实际的分支目标地址
+        .PC_in(PC_reg_F),                // IF阶段的PC
+        .hit(btb_hit),                   // BTB命中信号
+        .target_addr(btb_target_addr)    // 预测的分支目标地址
+    );
 
-    PC PC_1(
-           .clk(clk),
-           .rst(rst),
-           .PC_src(PC_src),
-           .PC_reg(PC_reg_F),
-           .valid_in(valid_PC),
-           .valid_out(/* reserved */)
-       );
+    /* verilator lint_off PINCONNECTEMPTY */
+/* verilator lint_off UNUSEDSIGNAL */
+PC PC_1(
+       .clk(clk),
+       .rst(rst),
+       .PC_src(PC_src),
+       .PC_reg(PC_reg_F),
+       .valid_in(valid_PC),
+       .valid_out() // 未使用但需要连接
+   );
+/* verilator lint_on UNUSEDSIGNAL */
     wire Jump_sign;
-    wire [31:0] PC_norm_E;
-    assign PC_norm_E=PC_reg_E+32'd4;
+    // PC计算
     assign PC_norm=PC_reg_F+32'd4;
     assign PC_jump=PC_reg_E+imme_E;
     assign PC_jalr=imme_E+ALU_DA;
     assign Jump_sign=Jump_E |( Branch_E & branch_true);
+    
+    // BTB更新逻辑 - 在EX阶段确认分支结果后更新
+    assign btb_update = (Jump_E || (Branch_E & branch_true)) && valid_E;
+    assign btb_update_target = jalr_E ? PC_jalr : PC_jump;
+    
     //assign PC_src=(Jump_sign)?((jalr_E)?PC_jalr:PC_jump):PC_norm;]
     wire Pre_Wrong;
 
@@ -345,13 +370,17 @@ module datapath(
         end
     end
 `ifdef Predict
-    // 优化时序：减少组合逻辑路径深度
     
-    // 分支预测状态机（保持原有逻辑）
+    // 使用BTB进行分支预测
+    wire [31:0] PC_normal_path, PC_correction_path;
+    
+    // 分支预测状态机（方向预测）
     reg [1:0] state;
     wire predict_ctrl;
-    assign predict_ctrl = (state[1] == 1'b1); // MSB 为 1 表示跳转
+    wire predict_direction;
+    assign predict_ctrl = (state[1] == 1'b1); // MSB 为 1 表示预测跳转
     
+    // 两位饱和计数器更新逻辑
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             state <= 2'b00; // 初始化为强烈不跳转
@@ -370,24 +399,14 @@ module datapath(
         end
     end
     
-    // F级指令解码（减少组合逻辑层数）
-    wire [6:0] opcode_F;
-    wire branch_F, jal_F;
-    wire [31:0] J_imme_F, B_imme_F;
-    wire [31:0] imme_F, PC_branch_jal_F;
-    wire predict_F;
+    // 将BTB与方向预测器结合
     reg predict_D, predict_E;
+    wire predict_F;
     
-    assign opcode_F = instr_F[6:0];
-    assign branch_F = (opcode_F == `B_type);
-    assign jal_F = (opcode_F == `jal);
-    
-    // 立即数计算并行化
-    assign J_imme_F = {{12{instr_F[31]}}, instr_F[19:12], instr_F[20], instr_F[30:21], 1'b0};
-    assign B_imme_F = {{20{instr_F[31]}}, instr_F[7], instr_F[30:25], instr_F[11:8], 1'b0};
-    assign imme_F = jal_F ? J_imme_F : B_imme_F;
-    assign PC_branch_jal_F = PC_reg_F + imme_F;
-    assign predict_F = (predict_ctrl && branch_F) || jal_F;
+    // 基于BTB和方向预测器进行预测
+    // 如果BTB命中，使用方向预测器判断是否跳转
+    // 如果是JAL指令，总是预测跳转
+    assign predict_F = btb_hit && predict_ctrl;
     
     // 预测信号流水线传递
     always@(posedge clk) begin
@@ -401,19 +420,22 @@ module datapath(
         end
     end
     
-    // 优化的PC选择逻辑：减少关键路径
-    wire [31:0] PC_normal_path, PC_correction_path;
+    // 优化的PC选择逻辑
+    wire correction_needed;
     
     assign Pre_Wrong = predict_E ^ Jump_sign;
     
     // 正常路径：预测正确时的PC选择
-    assign PC_normal_path = predict_F ? PC_branch_jal_F : PC_norm;
+    // 当BTB命中且方向预测为跳转时，使用BTB预测的目标地址
+    assign PC_normal_path = (btb_hit && predict_ctrl) ? btb_target_addr : PC_norm;
     
     // 修正路径：预测错误时的PC选择  
+    wire [31:0] PC_next_E;
+    assign PC_next_E = PC_reg_E + 32'd4; // 执行阶段PC+4
     assign PC_correction_path = Jump_sign ? 
-                               (jalr_E ? PC_jalr : PC_jump) : PC_norm_E;
+                              (jalr_E ? PC_jalr : PC_jump) : PC_next_E;
     
-    // 最终PC选择：只有一级选择器
+    // 最终PC选择
     always@(*) begin
         PC_src = Pre_Wrong ? PC_correction_path : PC_normal_path;
     end
@@ -481,9 +503,6 @@ module datapath(
     /*
     assign ALU_DA=(reg_ren_E)?((auipc_E)? PC_reg_E:rdata1_E):32'b0;
     assign ALU_DB=(ALU_DB_Src_E)?rdata2_E:imme_E;*/
-
-
-
 
     wire beq,bne,blt,bge,bltu,bgeu;
     assign beq=(opcode_E==`B_type)&&(funct3_E==3'b000);

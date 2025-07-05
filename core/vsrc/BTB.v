@@ -1,18 +1,18 @@
 // Branch Target Buffer
-// 用于建立PC值与分支指令及其分支地址之间的映射关系
+// 用于建立PC值与跳转指令及其跳转地址之间的映射关系
 module BTB(
         input wire clk,
         input wire rst,
 
         /* 时序逻辑， 更新buffer */
-        input wire valid_in, // 是否有新的分支指令
-        input wire [31:0] branch_PC, // 分支指令的PC值
-        input wire [31:0] branch_target, // 分支指令的目标地址
+        input wire valid_in, // 是否有新的跳转指令
+        input wire [31:0] branch_PC, // 跳转指令的PC值
+        input wire [31:0] branch_target, // 跳转指令的目标地址
 
         /* 组合逻辑 */
         input wire [31:0] PC_in, // 需要判断的PC值
-        output wire is_branch_inst, // 是否为分支指令
-        output wire [31:0] target_addr // 分支目标地址
+        output wire hit, // 是否命中跳转
+        output wire [31:0] target_addr // 跳转目标地址
     );
 
     // BTB参数定义
@@ -32,13 +32,13 @@ module BTB(
     wire [INDEX_WIDTH-1:0] update_index = branch_PC[INDEX_WIDTH+1:2];
     wire [TAG_WIDTH-1:0] update_tag = branch_PC[31:INDEX_WIDTH+2];
 
-    // 查找逻辑 - 判断当前PC是否命中BTB中的分支指令
+    // 查找逻辑 - 判断当前PC是否命中BTB中的跳转指令
     wire tag_match = (btb_tags[lookup_index] == lookup_tag);
     wire entry_valid = btb_valid[lookup_index];
 
     // 输出赋值
-    assign is_branch_inst = tag_match && entry_valid;
-    assign target_addr = (is_branch_inst) ? btb_targets[lookup_index] : 32'b0;
+    assign hit = tag_match && entry_valid;
+    assign target_addr = (hit) ? btb_targets[lookup_index] : 32'b0;
 
     // BTB更新逻辑
     integer i;
@@ -52,7 +52,7 @@ module BTB(
             end
         end
         else if (valid_in) begin
-            // 有新的分支指令时，更新BTB表
+            // 有新的跳转指令时，更新BTB表
             btb_valid[update_index] <= 1'b1;
             btb_tags[update_index] <= update_tag;
             btb_targets[update_index] <= branch_target;

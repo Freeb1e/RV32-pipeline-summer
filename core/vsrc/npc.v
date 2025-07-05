@@ -88,15 +88,15 @@ module myCPU(
     wire [31:0] mem_data_in_1;
     assign mem_data_in = mem_data_in_1; // for simulation
 `endif
-       memory #(.IS_IF(0)) u_memory(
-               .raddr 	(mem_addr  ),
-               .waddr 	(mem_addr  ),
-               .wdata 	(mem_data_out ),
-               .wmask 	(wmask  ),
-               .wen   	(mem_wen    ),
-               .valid 	(mem_ren | mem_wen ),
-               .rdata 	(mem_data_in_1  )
-           );
+    memory #(.IS_IF(0)) u_memory(
+            .raddr 	(mem_addr  ),
+            .waddr 	(mem_addr  ),
+            .wdata 	(mem_data_out ),
+            .wmask 	(wmask  ),
+            .wen   	(mem_wen    ),
+            .valid 	(mem_ren | mem_wen ),
+            .rdata 	(mem_data_in_1  )
+        );
 
     memory #(.IS_IF(1)) u_instr(
                .raddr 	(PC_reg  ),

@@ -64,7 +64,7 @@ void Cget_pc_inst(uint32_t* pc, uint32_t* inst){
   get_pc_inst(pc_ptr, inst_ptr);
 }
 
-uint32_t pc;
+uint32_t pc, last_pc;
 static uint32_t exec_once() {
 
   /* run a single instrument */
@@ -75,14 +75,23 @@ static uint32_t exec_once() {
   }while (pc==0x00000000);
   nr_inst++;
 
-  if(sim_time%10000 <= 1){
-    printf("sim_time = %d\n", sim_time);
+  if(pc == last_pc) {
+    stop(0, pc);
+    return pc;
   }
+  last_pc = pc;
+
+  if(state == END)
+    return pc;
 
   uint32_t instru;
   instru = paddr_read(pc, 4);
   ftrace(pc, instru);
   write_iringbuf(pc, instru);
+
+  // if(sim_time%1000000 <= 1){
+  //   printf("sim_time = %d\n", sim_time);
+  // }
 
 #ifdef CONFIG_ITRACE
   char *p = logbuf;

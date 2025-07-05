@@ -70,12 +70,6 @@ bool memory_out_of_bound(uint32_t addr) {
   }
   return false;
 }
-
-bool memory_out_of_inst(uint32_t addr){
-  // insturction memory address: 0x80000000 ~ 0x87ffffff
-  return (addr < 0x80000000 || addr >= 0x87ffffff);
-}
-
 extern "C" int pmem_read(int raddr, char is_IF) {
 
   uint32_t addr = raddr;
@@ -123,7 +117,6 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask, char is_IF) {
   // MMIO
   #ifdef CONFIG_DEVICE        
   if(in_mmio(addr)){
-    
     mmio_write(addr, wdata);
     return;
   }

@@ -2,7 +2,7 @@
 #define MEMORY_H
 #include <common.h>
 
-#define MSIZE 0x08000000 // 128MB 
+#define MSIZE 0x08000000 // 2MB memory size + 256 mmio
 #define RESET_VECTOR 0x80000000
 #define MBASE 0x80000000
 
