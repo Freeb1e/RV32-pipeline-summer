@@ -81,7 +81,8 @@ static uint32_t exec_once() {
   nr_inst++;
 
   Cget_pc_inst(&pc, NULL);
-  
+  // printf("pc=" FMT_WORD "\n", pc);
+
   if(state == END)
     return pc;
 

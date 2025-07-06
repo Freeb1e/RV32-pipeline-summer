@@ -45,8 +45,8 @@ module myCPU(
 
 `endif
     );
-`ifndef SIMULATION
-    wire rst;
+    `ifndef SIMULATION
+            wire rst;
     wire clk;
     assign clk = cpu_clk;
     assign rst = cpu_rst;
@@ -82,12 +82,94 @@ module myCPU(
     assign inst_axi_arready = 1'b1;
     assign inst_axi_rvalid = inst_axi_arvalid;
     assign inst_axi_rresp = 2'b00;
-    assign data_axi_arready = 1'b1;
-    assign data_axi_rvalid = data_axi_arvalid;
+
+    // 数据存储器访存延迟参数
+    parameter DATA_MEM_DELAY = 3;  // 3个周期的延迟
+
+    // 数据存储器延迟控制寄存器
+    reg [2:0] data_read_delay_counter;
+    reg [2:0] data_write_delay_counter;
+    reg data_read_pending;
+    reg data_write_pending;
+    reg data_arready_reg;
+    reg data_rvalid_reg;
+    reg data_awready_reg;
+    reg data_wready_reg;
+    reg data_bvalid_reg;
+
+    // 数据存储器AXI信号延迟逻辑
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            data_read_delay_counter <= 0;
+            data_write_delay_counter <= 0;
+            data_read_pending <= 0;
+            data_write_pending <= 0;
+            data_arready_reg <= 1;
+            data_rvalid_reg <= 0;
+            data_awready_reg <= 1;
+            data_wready_reg <= 1;
+            data_bvalid_reg <= 0;
+        end
+        else begin
+            // 读延迟逻辑
+            if (data_axi_arvalid && data_arready_reg && !data_read_pending) begin
+                // 开始读操作延迟
+                data_read_pending <= 1;
+                data_arready_reg <= 0;
+                data_rvalid_reg <= 0;
+                data_read_delay_counter <= DATA_MEM_DELAY - 1;
+            end
+            else if (data_read_pending) begin
+                if (data_read_delay_counter == 0) begin
+                    // 延迟结束，发出读数据有效信号
+                    data_rvalid_reg <= 1;
+                    data_read_pending <= 0;
+                    data_arready_reg <= 1;
+                end
+                else begin
+                    data_read_delay_counter <= data_read_delay_counter - 1;
+                end
+            end
+            else if (data_rvalid_reg && data_axi_rready) begin
+                // 读数据被接收，清除有效信号
+                data_rvalid_reg <= 0;
+            end
+
+            // 写延迟逻辑
+            if (data_axi_awvalid && data_axi_wvalid && data_awready_reg && data_wready_reg && !data_write_pending) begin
+                // 开始写操作延迟
+                data_write_pending <= 1;
+                data_awready_reg <= 0;
+                data_wready_reg <= 0;
+                data_bvalid_reg <= 0;
+                data_write_delay_counter <= DATA_MEM_DELAY - 1;
+            end
+            else if (data_write_pending) begin
+                if (data_write_delay_counter == 0) begin
+                    // 延迟结束，发出写响应信号
+                    data_bvalid_reg <= 1;
+                    data_write_pending <= 0;
+                    data_awready_reg <= 1;
+                    data_wready_reg <= 1;
+                end
+                else begin
+                    data_write_delay_counter <= data_write_delay_counter - 1;
+                end
+            end
+            else if (data_bvalid_reg && data_axi_bready) begin
+                // 写响应被接收，清除有效信号
+                data_bvalid_reg <= 0;
+            end
+        end
+    end
+
+    // 数据存储器AXI信号分配
+    assign data_axi_arready = data_arready_reg;
+    assign data_axi_rvalid = data_rvalid_reg;
     assign data_axi_rresp = 2'b00;
-    assign data_axi_awready = 1'b1;
-    assign data_axi_wready = 1'b1;
-    assign data_axi_bvalid = 1'b1;
+    assign data_axi_awready = data_awready_reg;
+    assign data_axi_wready = data_wready_reg;
+    assign data_axi_bvalid = data_bvalid_reg;
     assign data_axi_bresp = 2'b00;
 
 `endif
@@ -149,7 +231,7 @@ module myCPU(
                .wmask 	(8'h00  ),               // 指令内存不写
                .wen   	(1'b0    ),
                .valid 	(inst_axi_arvalid ),     // 使用AXI指令读有效
-               .rdata 	(inst_axi_rdata  ) 
+               .rdata 	(inst_axi_rdata  )
            );
 
     wire [31:0] PC_W;
@@ -163,8 +245,8 @@ module myCPU(
                endfunction
     export "DPI-C" function get_validW;
                 function void get_validW();
-                     output byte validW;
-                     validW = {7'b0,valid_W};
+                    output byte validW;
+                    validW = {7'b0,valid_W};
                 endfunction
 
     import "DPI-C" function void ebreak();

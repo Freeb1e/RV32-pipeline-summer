@@ -118,9 +118,10 @@ module datapath(
     valid_ctrl u_valid_ctrl(
                    .clk             	(clk              ),
                    .rst             	(rst              ),
-                   .arready         	(data_axi_arready          ),
+                   //.arready         	(data_axi_arready          ),
                    .rvalid          	(data_axi_rvalid           ),
                    .load_M          	(MemRead_M           ),
+                   .load_E          	(MemRead_E           ),
                    .stall           	(stall_D            ),
                    .Pre_Wrong        	(Pre_Wrong         ),
                    .valid_F         	(valid_F          ),
@@ -221,7 +222,7 @@ module datapath(
 
     buffer_F_D u_buffer_F_D(
                    .clk            	(clk             ),
-                   .rst            	(rst     |Pre_Wrong         ),
+                   .rst            	(rst         ),
 
                    .instr_F        	(instr_F         ),
                    .PC_reg_F       	(PC_reg_F        ),
@@ -237,7 +238,7 @@ module datapath(
 
     buffer_D_E u_buffer_D_E(
                    .clk          	(clk           ),
-                   .rst          	(rst|Pre_Wrong        ),
+                   .rst          	(rst        ),
                    .valid_D      	(valid_D       ),
                    .ready_E      	(ready_E       ),
 
@@ -414,6 +415,7 @@ module datapath(
     assign btb_update_target = branch_target;
 
     wire Pre_Wrong;
+    wire Pre_Wrong_valid = Pre_Wrong & valid_E; // 预测错误且E阶段有效
 
 `ifdef Predict
 
@@ -464,7 +466,7 @@ module datapath(
 
     // 最终PC选择
     always@(*) begin
-        PC_src = Pre_Wrong ? PC_correction_path : PC_predict_path;
+        PC_src = Pre_Wrong_valid ? PC_correction_path : PC_predict_path;
     end
 `else
     assign PC_src=(Jump_sign)?((jalr_E)?PC_jalr:PC_jump):snpc;

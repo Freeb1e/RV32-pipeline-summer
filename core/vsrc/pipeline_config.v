@@ -6,3 +6,7 @@
 `define rise
 `define RAMBUFFER
 `define PERFORMACE_COUNTER
+
+// 数据存储器访存延迟配置（仅在SIMULATION模式下生效）
+// 单位：时钟周期，0表示无延迟
+`define DATA_MEMORY_DELAY 2
