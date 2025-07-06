@@ -139,7 +139,13 @@ module Adder(input [31:0] A,
                  output [31:0] ADD_result);
 
 
-    assign {ADD_carry,ADD_result}=A+B+{32'b0, Cin};
+    //assign {ADD_carry,ADD_result}=A+B+{32'b0, Cin};
+    CLA_32 CLA_32_inst(
+        .A(A),
+        .B(B),
+        .Cin(Cin),
+        .Sum({ADD_carry, ADD_result})
+    );
     assign ADD_zero = ~(|ADD_result);
     /*
     assign ADD_OverFlow=((ALU_CTL==4'b0000) & ~A[31] & ~B[31] & ADD_result[31]) 
