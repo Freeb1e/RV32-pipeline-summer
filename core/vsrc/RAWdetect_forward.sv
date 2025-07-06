@@ -47,6 +47,9 @@ module RAWdetect_forward(
     wire FC_rs2_E, FC_rs2_M, FC_rs2_W;
     wire [31:0] wdata_E, wdata_M, wdata_W;
 
+    // Define missing signals to resolve IMPLICIT warnings
+    wire RC_rs2_E, RC_rs2_M, RC_rs2_W;
+
     // Wire signal assignments
     assign no_rs2 = |(type_D[2:0]); // I-type, U-type, J-type does not have rs2
     
