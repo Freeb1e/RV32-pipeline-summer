@@ -25,16 +25,25 @@ module BTB(
     reg [31:0] btb_targets [BTB_SIZE-1:0];        // 目标地址数组
     reg btb_valid [BTB_SIZE-1:0];                 // 有效位数组
 
-    // BTB索引计算 (使用PC的低位，忽略字节偏移)
-    wire [INDEX_WIDTH-1:0] lookup_index = PC_in[INDEX_WIDTH+1:2];
-    wire [TAG_WIDTH-1:0] lookup_tag = PC_in[31:INDEX_WIDTH+2];
+    // Wire信号声明
+    wire [INDEX_WIDTH-1:0] lookup_index;
+    wire [TAG_WIDTH-1:0] lookup_tag;
+    wire [INDEX_WIDTH-1:0] update_index;
+    wire [TAG_WIDTH-1:0] update_tag;
+    wire tag_match;
+    wire entry_valid;
 
-    wire [INDEX_WIDTH-1:0] update_index = branch_PC[INDEX_WIDTH+1:2];
-    wire [TAG_WIDTH-1:0] update_tag = branch_PC[31:INDEX_WIDTH+2];
+    // Wire信号赋值
+    // BTB索引计算 (使用PC的低位，忽略字节偏移)
+    assign lookup_index = PC_in[INDEX_WIDTH+1:2];
+    assign lookup_tag = PC_in[31:INDEX_WIDTH+2];
+
+    assign update_index = branch_PC[INDEX_WIDTH+1:2];
+    assign update_tag = branch_PC[31:INDEX_WIDTH+2];
 
     // 查找逻辑 - 判断当前PC是否命中BTB中的跳转指令
-    wire tag_match = (btb_tags[lookup_index] == lookup_tag);
-    wire entry_valid = btb_valid[lookup_index];
+    assign tag_match = (btb_tags[lookup_index] == lookup_tag);
+    assign entry_valid = btb_valid[lookup_index];
 
     // 输出赋值
     assign hit = tag_match && entry_valid;

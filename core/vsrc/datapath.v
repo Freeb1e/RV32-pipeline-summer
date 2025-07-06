@@ -218,7 +218,8 @@ module datapath(
 
 
     //译码阶段，计算分支指令的目标地址
-    wire [31:0] branch_target = PC_reg_D + imme_D;
+    wire [31:0] branch_target;
+    assign branch_target = PC_reg_D + imme_D;
 
     buffer_F_D u_buffer_F_D(
                    .clk            	(clk             ),
@@ -395,7 +396,7 @@ module datapath(
             .hit(btb_hit),                   // BTB命中信号
             .target_addr(btb_target_addr)    // 预测的分支目标地址
         );
-    reg [31:0] PC_reg_F;
+    wire [31:0] PC_reg_F;
     PC PC_1(
            .clk(clk),
            .rst(rst),
@@ -446,12 +447,14 @@ module datapath(
     // end
 
     //静态预测
-    wire predict_ctrl = instr_F[31];
+    wire predict_ctrl;
+    assign predict_ctrl = instr_F[31];
 
     // 基于BTB和方向预测器进行预测
     // 如果BTB命中，使用方向预测器判断是否跳转
     wire predict_D, predict_E;
-    wire predict_F = btb_hit && predict_ctrl;
+    wire predict_F;
+    assign predict_F = btb_hit && predict_ctrl;
 
     assign Pre_Wrong = predict_E ^ Jump_sign;
 
@@ -540,12 +543,12 @@ module datapath(
 
     reg [3:0] wmask;
     always @(*) begin
-        case(funct3_M)
-            3'b000:
+        case(funct3_M[1:0])
+            2'b00:
                 wmask=4'h1;
-            3'b001:
+            2'b01:
                 wmask=4'h3;
-            3'b010:
+            2'b10:
                 wmask=4'hF;
             default:
                 wmask=4'h0;
