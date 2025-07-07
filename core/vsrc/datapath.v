@@ -182,6 +182,8 @@ module datapath(
     wire valid_forward_rs2;
 
     RAWdetect_forward u_RAWdetect_forward(
+                            .clk               	(clk                ),
+                            .rst               	(rst                ),
                           .type_D            	(type_D             ),
                           .type_E            	(type_E             ),
                           .type_M            	(type_M             ),
@@ -212,11 +214,11 @@ module datapath(
 
 
     // 转发到ID阶段的源操作数
-    wire [31:0] src1, src2;
-    assign src1 = (valid_forward_rs1) ? forward_rs1 : rdata1_D;
-    assign src2 = (valid_forward_rs2) ? forward_rs2 : rdata2_D;
+     wire [31:0] src1, src2;
+     assign src1 = (valid_forward_rs1) ? forward_rs1 : rdata1_E;
+     assign src2 = (valid_forward_rs2) ? forward_rs2 : rdata2_E;
 
-
+    
     //译码阶段，计算分支指令的目标地址
     wire [31:0] branch_target;
     assign branch_target = PC_reg_D + imme_D;
@@ -264,8 +266,8 @@ module datapath(
                    // 数据
                    .PC_reg_D       (PC_reg_D        ),
                    .imme_D         (imme_D          ),
-                   .rdata1_D       (src1        ),
-                   .rdata2_D       (src2        ),
+                   .rdata1_D       (rdata1_D        ),
+                   .rdata2_D       (rdata2_D        ),
                    .Rd_D           (Rd_D            ),
                    .Rs1_D          (Rs1_D           ),
                    .Rs2_D          (Rs2_D           ),
@@ -315,7 +317,7 @@ module datapath(
 
                    // 数据输入
                    .ALUResult_E    	(ALUResult_E     ),
-                   .WriteData_E    	(rdata2_E        ),
+                   .WriteData_E    	(src2        ),
                    .Rd_E           	(Rd_E            ),
                    .PC_reg_E 	      (PC_reg_E        ),
                    .imme_E         	(imme_E          ),
@@ -478,8 +480,8 @@ module datapath(
 
 
     //-----------------EX stage----------------
-    assign ALU_DA=(reg_ren_E)?((auipc_E)? PC_reg_E:rdata1_E):32'b0;
-    assign ALU_DB=(ALU_DB_Src_E)?rdata2_E:imme_E;
+    assign ALU_DA=(reg_ren_E)?((auipc_E)? PC_reg_E:src1):32'b0;
+    assign ALU_DB=(ALU_DB_Src_E)?src2:imme_E;
     ALU ALU1(
             .ALU_DA(ALU_DA),
             .ALU_DB(ALU_DB),
