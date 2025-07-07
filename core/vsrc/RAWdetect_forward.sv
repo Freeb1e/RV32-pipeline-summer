@@ -113,7 +113,7 @@ module RAWdetect_forward(
             wdata_E_r  <= 32'b0;
             wdata_M_r  <= 32'b0;
             wdata_W_r  <= 32'b0;
-        end else begin
+        end else if(ready_E)begin
             RC_rs1_E_r <= RC_rs1_E_comb;
             RC_rs1_M_r <= RC_rs1_M_comb;
             RC_rs1_W_r <= RC_rs1_W_comb;

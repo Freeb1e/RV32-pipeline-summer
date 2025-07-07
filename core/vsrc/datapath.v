@@ -115,6 +115,10 @@ module datapath(
     wire valid_F, valid_D, valid_E, valid_M, valid_W;
     wire ready_F, ready_D, ready_E, ready_M, ready_W;
 
+
+        reg [31:0] instr_F_r, instr_D_r, instr_E_r, instr_M_r, instr_W_r;
+    
+
     valid_ctrl u_valid_ctrl(
                    .clk             	(clk              ),
                    .rst             	(rst              ),
