@@ -11,10 +11,12 @@ module buffer_F_D(
         input [31:0] instr_F,
         input [31:0] PC_reg_F,
         input predict_F,
+        input btb_hit_F,
 
         output reg [31:0] instr_D,
         output reg [31:0] PC_reg_D,
         output reg predict_D,
+        output reg btb_hit_D,
 
         input valid_F,
         input ready_D
@@ -26,11 +28,13 @@ module buffer_F_D(
             instr_D <= 32'b0;
             PC_reg_D <= 32'h8000_0000;
             predict_D <= 1'b0; // 复位预测信号
+            btb_hit_D <= 1'b0;
         end
         else if (valid_F & ready_D) begin
             instr_D <= instr_F;
             PC_reg_D <= PC_reg_F;
             predict_D <= predict_F; // 直接传递预测信号
+            btb_hit_D <= btb_hit_F;
         end
     end
 

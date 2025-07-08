@@ -246,10 +246,12 @@ module datapath(
                    .instr_F        	(instr_F         ),
                    .PC_reg_F       	(PC_reg_F        ),
                    .predict_F      	(predict_F       ),
+                   .btb_hit_F      (btb_hit_F      ),
 
                    .instr_D        	(instr_D         ),
                    .PC_reg_D       	(PC_reg_D        ),
                    .predict_D      	(predict_D       ),
+                   .btb_hit_D      (btb_hit_D      ),
 
                    .valid_F        	    (valid_F         ),
                    .ready_D        	    (ready_D         )
@@ -404,7 +406,7 @@ module datapath(
     wire [31:0] snpc,PC_jump,PC_jalr;
 
     // BTB相关信号
-    wire btb_hit;
+    wire btb_hit_F, btb_hit_D;
     wire [32:0] btb_target_addr;
     wire btb_update;
     wire [32:0] btb_update_target;
@@ -417,7 +419,7 @@ module datapath(
             .branch_PC(PC_reg_D),            // 当前执行的分支指令PC
             .branch_target(btb_update_target), // 实际的分支目标地址
             .PC_in(PC_reg_F),                // IF阶段的PC
-            .hit(btb_hit),                   // BTB命中信号
+            .hit(btb_hit_F),                   // BTB命中信号
             .target_addr(btb_target_addr)    // 预测的分支目标地址
         );
     wire [31:0] PC_reg_F;
@@ -436,7 +438,7 @@ module datapath(
     assign Jump_sign = jalr_E | jal_E | (Branch_E & branch_true);
 
     // BTB更新逻辑 - ID阶段译码后可以更新
-    assign btb_update = (Branch_D & valid_D) | jal_D;
+    assign btb_update = (Branch_D|jal_D) & valid_D & (~btb_hit_D); // 仅在分支指令且未命中BTB时更新
     assign btb_update_target = {jal_D, branch_target};
 
     wire Pre_Wrong;
@@ -478,13 +480,13 @@ module datapath(
     // 如果BTB命中，使用方向预测器判断是否跳转
     wire predict_D, predict_E;
     wire predict_F;
-    assign predict_F = btb_hit && predict_ctrl;
+    assign predict_F = btb_hit_F && predict_ctrl;
 
     assign Pre_Wrong = predict_E ^ Jump_sign;
 
     // 正常路径：预测正确时的PC选择
     // 当BTB命中且方向预测为跳转时，使用BTB预测的目标地址
-    assign PC_predict_path = (btb_hit && predict_ctrl) ? btb_target_addr[31:0] : snpc;
+    assign PC_predict_path = (btb_hit_F && predict_ctrl) ? btb_target_addr[31:0] : snpc;
 
     // 修正路径：预测错误时的PC选择
     wire [31:0] PC_next_E;
