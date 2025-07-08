@@ -7,12 +7,12 @@ module BTB(
         /* 时序逻辑， 更新buffer */
         input wire valid_in, // 是否有新的跳转指令
         input wire [31:0] branch_PC, // 跳转指令的PC值
-        input wire [31:0] branch_target, // 跳转指令的目标地址
+        input wire [32:0] branch_target, // 跳转指令的目标地址
 
         /* 组合逻辑 */
         input wire [31:0] PC_in, // 需要判断的PC值
         output wire hit, // 是否命中跳转
-        output wire [31:0] target_addr // 跳转目标地址
+        output wire [32:0] target_addr // 跳转目标地址
     );
 
     // BTB参数定义
@@ -22,7 +22,7 @@ module BTB(
 
     // BTB表项定义
     reg [TAG_WIDTH-1:0] btb_tags [BTB_SIZE-1:0];  // 标签数组
-    reg [31:0] btb_targets [BTB_SIZE-1:0];        // 目标地址数组
+    reg [32:0] btb_targets [BTB_SIZE-1:0];        // 目标地址数组
     reg btb_valid [BTB_SIZE-1:0];                 // 有效位数组
 
     // Wire信号声明
@@ -47,7 +47,7 @@ module BTB(
 
     // 输出赋值
     assign hit = tag_match && entry_valid;
-    assign target_addr = (hit) ? btb_targets[lookup_index] : 32'b0;
+    assign target_addr = (hit) ? btb_targets[lookup_index] : 33'b0;
 
     // BTB更新逻辑
     integer i;
@@ -57,7 +57,7 @@ module BTB(
             for (i = 0; i < BTB_SIZE; i = i + 1) begin
                 btb_valid[i] <= 1'b0;
                 btb_tags[i] <= {TAG_WIDTH{1'b0}};
-                btb_targets[i] <= 32'b0;
+                btb_targets[i] <= 33'b0;
             end
         end
         else if (valid_in) begin

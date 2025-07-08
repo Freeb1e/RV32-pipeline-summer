@@ -112,16 +112,18 @@ module datapath(
     reg [31:0] ALUResult_E;
 
 
-    `ifdef RV32M
+`ifdef RV32M
+
     wire mulsign_D;
-        
-    `endif
+
+`endif
+
     wire valid_F, valid_D, valid_E, valid_M, valid_W;
     wire ready_F, ready_D, ready_E, ready_M, ready_W;
 
 
-        reg [31:0] instr_F_r, instr_D_r, instr_E_r, instr_M_r, instr_W_r;
-    
+    reg [31:0] instr_F_r, instr_D_r, instr_E_r, instr_M_r, instr_W_r;
+
 
     valid_ctrl u_valid_ctrl(
                    .clk             	(clk              ),
@@ -149,8 +151,9 @@ module datapath(
 
     // Decoder generate control signal
 `ifdef RV32M
-wire mulsign_E;
-     `endif
+    wire mulsign_E;
+`endif
+
     mulcu_decoder mulcu1(
                       .instr(instr_D),
                       .ALU_ZERO(ALU_ZERO),
@@ -170,9 +173,9 @@ wire mulsign_E;
                       .jal(jal_D),
                       .jalr(jalr_D),
                       .funct3(funct3_D),
-                        `ifdef RV32M
-                        .mulsign(mulsign_D),
-                        `endif
+`ifdef RV32M
+                      .mulsign(mulsign_D),
+`endif
                       .opcode(opcode_D)
                   );
 
@@ -195,8 +198,8 @@ wire mulsign_E;
     wire valid_forward_rs2;
 
     RAWdetect_forward u_RAWdetect_forward(
-                            .clk               	(clk                ),
-                            .rst               	(rst                ),
+                          .clk               	(clk                ),
+                          .rst               	(rst                ),
                           .type_D            	(type_D             ),
                           .type_E            	(type_E             ),
                           .type_M            	(type_M             ),
@@ -227,11 +230,11 @@ wire mulsign_E;
 
 
     // 转发到ID阶段的源操作数
-     wire [31:0] src1, src2;
-     assign src1 = (valid_forward_rs1) ? forward_rs1 : rdata1_E;
-     assign src2 = (valid_forward_rs2) ? forward_rs2 : rdata2_E;
+    wire [31:0] src1, src2;
+    assign src1 = (valid_forward_rs1) ? forward_rs1 : rdata1_E;
+    assign src2 = (valid_forward_rs2) ? forward_rs2 : rdata2_E;
 
-    
+
     //译码阶段，计算分支指令的目标地址
     wire [31:0] branch_target;
     assign branch_target = PC_reg_D + imme_D;
@@ -402,9 +405,9 @@ wire mulsign_E;
 
     // BTB相关信号
     wire btb_hit;
-    wire [31:0] btb_target_addr;
+    wire [32:0] btb_target_addr;
     wire btb_update;
-    wire [31:0] btb_update_target;
+    wire [32:0] btb_update_target;
 
     // BTB实例化
     BTB u_BTB(
@@ -434,7 +437,7 @@ wire mulsign_E;
 
     // BTB更新逻辑 - ID阶段译码后可以更新
     assign btb_update = (Branch_D & valid_D) | jal_D;
-    assign btb_update_target = branch_target;
+    assign btb_update_target = {jal_D, branch_target};
 
     wire Pre_Wrong;
     wire Pre_Wrong_valid = Pre_Wrong & valid_E; // 预测错误且E阶段有效
@@ -469,7 +472,7 @@ wire mulsign_E;
 
     //静态预测
     wire predict_ctrl;
-    assign predict_ctrl = instr_F[31];
+    assign predict_ctrl = btb_target_addr[32] | instr_F[31];
 
     // 基于BTB和方向预测器进行预测
     // 如果BTB命中，使用方向预测器判断是否跳转
@@ -481,7 +484,7 @@ wire mulsign_E;
 
     // 正常路径：预测正确时的PC选择
     // 当BTB命中且方向预测为跳转时，使用BTB预测的目标地址
-    assign PC_predict_path = (btb_hit && predict_ctrl) ? btb_target_addr : snpc;
+    assign PC_predict_path = (btb_hit && predict_ctrl) ? btb_target_addr[31:0] : snpc;
 
     // 修正路径：预测错误时的PC选择
     wire [31:0] PC_next_E;
@@ -507,9 +510,9 @@ wire mulsign_E;
             .ALU_CTL(ALUControl_E),
             .ALU_ZERO(ALU_ZERO),
             .ALU_OverFlow(ALU_OverFlow),
-            `ifdef RV32M
-            .mulsign(mulsign_E), 
-            `endif
+`ifdef RV32M
+            .mulsign(mulsign_E),
+`endif
             .ALU_DC(ALUResult_E_RAW)
 
         );
