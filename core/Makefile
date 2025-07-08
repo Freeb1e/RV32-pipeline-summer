@@ -15,7 +15,7 @@ VSRCS=$(shell find $(abspath ./vsrc) -name "*.v" -or -name "*.sv")
 CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
 HSRCS = $(shell find $(abspath ./csrc/include) -name "*.h")
 
-LOCAL_ARGS += -d $(CPU_HOME)/core/tools/riscv32-nemu-interpreter-so #-i $(CPU_HOME)/core/image.bin
+LOCAL_ARGS += -d $(CPU_HOME)/core/tools/riscv32-nemu-interpreter-so -i $(CPU_HOME)/core/image.bin
 
 # Compiler and flags
 VERILATOR = verilator

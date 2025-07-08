@@ -164,15 +164,16 @@ module myCPU(
                .valid 	(data_axi_arvalid | data_axi_awvalid ), // 读或写有效
                .rdata 	(data_axi_rdata  )
            );
-    
-    reg data_axi_rvalid_reg;
-    always @(posedge clk) begin
-        if(rst) begin
-            data_axi_rvalid_reg <= 0;
-        end else begin
-            data_axi_rvalid_reg <= data_axi_arvalid; //延迟一个周期读出数据
-        end
-    end
+    wire data_axi_rvalid_reg;
+    assign data_axi_rvalid_reg = data_axi_arvalid; // 延迟一个周期读出数据
+    // reg data_axi_rvalid_reg;
+    // always @(posedge clk) begin
+    //     if(rst) begin
+    //         data_axi_rvalid_reg <= 0;
+    //     end else begin
+    //         data_axi_rvalid_reg <= data_axi_arvalid; //延迟一个周期读出数据
+    //     end
+    // end
 
     memory #(.IS_IF(1)) u_instr(
                .raddr 	(inst_axi_araddr  ),     // 使用AXI指令地址
