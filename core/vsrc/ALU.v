@@ -1,4 +1,6 @@
 `timescale 1ns / 1ps
+`include "define.v"
+`include "pipeline_config.v"
 module ALU(
         ALU_DA,
         ALU_DB,
@@ -6,6 +8,9 @@ module ALU(
         ALU_ZERO,
         ALU_OverFlow,
         ALU_DC
+`ifdef RV32M
+        ,mulsign
+`endif
     );
     input [31:0]    ALU_DA;
     input [31:0]    ALU_DB;
@@ -13,6 +18,9 @@ module ALU(
     output          ALU_ZERO;
     output          ALU_OverFlow;
     output reg [31:0]   ALU_DC;
+`ifdef RV32M
+    input           mulsign;
+`endif
 
     //********************generate ctr***********************
     wire SUBctr;
@@ -86,6 +94,7 @@ module ALU(
     assign SLT_result = (LESS_S)?32'h00000001:32'h00000000;
 
     //**************************ALU result********************
+    `ifndef RV32M
     always @(*) begin
         case(Opctr)
             2'b00:
@@ -98,8 +107,45 @@ module ALU(
                 ALU_DC=shift_result;
         endcase
     end
-
+`else
+reg [31:0] ALU_DC_I;
+        always @(*) begin
+        case(Opctr)
+            2'b00:
+                ALU_DC_I=ADD_result;
+            2'b11:
+                ALU_DC_I=logic_result;
+            2'b10:
+                ALU_DC_I=SLT_result;
+            2'b01:
+                ALU_DC_I=shift_result;
+        endcase
+    end 
+`endif
     //********************************************************
+
+
+`ifdef RV32M
+    wire signed [63:0] mul_signed_signed   = $signed(ALU_DA) * $signed(ALU_DB);
+    wire [63:0]        mul_unsigned_unsigned = $unsigned(ALU_DA) * $unsigned(ALU_DB);
+    wire [63:0]        mul_signed_unsigned = $signed(ALU_DA) * $unsigned(ALU_DB);
+    reg [31:0] M_result;
+    assign ALU_DC = (mulsign) ? M_result : ALU_DC_I;
+    always @(*) begin
+        case(ALU_CTL)
+            `ADD:   M_result = mul_signed_signed[31:0]; // MUL
+            `SUB:   M_result = $signed(ALU_DA) - $signed(ALU_DB); // SUB
+            `SLL:   M_result = mul_signed_signed[63:32]; // MULH
+            `SLT:   M_result = mul_signed_unsigned[63:32]; // MULHSU
+            `SLTU:  M_result = mul_unsigned_unsigned[63:32]; // MULHU
+            `XOR:   M_result = (ALU_DB == 0) ? -1 : $signed(ALU_DA) / $signed(ALU_DB); // DIV
+            `SRL:   M_result = (ALU_DB == 0) ? 32'hFFFFFFFF : $unsigned(ALU_DA) / $unsigned(ALU_DB); // DIVU
+            `OR:   M_result = (ALU_DB == 0) ? ALU_DA : $signed(ALU_DA) % $signed(ALU_DB); // REM
+            `AND:    M_result = (ALU_DB == 0) ? ALU_DA : $unsigned(ALU_DA) % $unsigned(ALU_DB); // REMU
+            default:M_result = 32'h00000000;
+        endcase
+    end
+`endif
 endmodule
 
 

@@ -1,5 +1,6 @@
 `timescale 1ns / 1ps
-
+`include "define.v"
+`include "pipeline_config.v"
 /* verilator lint_off DECLFILENAME */
 /* verilator lint_off MULTITOP */
 
@@ -60,6 +61,9 @@ module buffer_D_E(
         input predict_D,
         input ebreak_D,
         input [4:0] type_D,
+`ifdef RV32M
+        input mulsign_D,
+`endif
 
         // 数据通路输入
         input [31:0] PC_reg_D,
@@ -87,6 +91,9 @@ module buffer_D_E(
         output reg predict_E,
         output reg ebreak_E,
         output reg [4:0] type_E,
+`ifdef RV32M
+        output reg mulsign_E,
+`endif
 
         // 数据通路输出
         output reg [31:0] PC_reg_E,
@@ -118,6 +125,9 @@ module buffer_D_E(
             predict_E <= 1'b0;
             ebreak_E <= 1'b0;
             type_E <= 5'b0;
+`ifdef RV32M
+            mulsign_E <= 1'b0;
+`endif
 
             // 数据通路复位
             PC_reg_E <= 32'h8000_0000;
@@ -146,6 +156,9 @@ module buffer_D_E(
             predict_E <= predict_D;
             ebreak_E <= ebreak_D;
             type_E <= type_D;
+`ifdef RV32M
+            mulsign_E <= mulsign_D;
+`endif
 
             // 数据通路赋值
             PC_reg_E <= PC_reg_D;

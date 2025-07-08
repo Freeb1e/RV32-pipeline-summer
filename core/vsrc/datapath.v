@@ -112,6 +112,10 @@ module datapath(
     reg [31:0] ALUResult_E;
 
 
+    `ifdef RV32M
+    wire mulsign_D;
+        
+    `endif
     wire valid_F, valid_D, valid_E, valid_M, valid_W;
     wire ready_F, ready_D, ready_E, ready_M, ready_W;
 
@@ -144,7 +148,9 @@ module datapath(
     //--------------------------------------------------------------------------------
 
     // Decoder generate control signal
-
+`ifdef RV32M
+wire mulsign_E;
+     `endif
     mulcu_decoder mulcu1(
                       .instr(instr_D),
                       .ALU_ZERO(ALU_ZERO),
@@ -164,6 +170,9 @@ module datapath(
                       .jal(jal_D),
                       .jalr(jalr_D),
                       .funct3(funct3_D),
+                        `ifdef RV32M
+                        .mulsign(mulsign_D),
+                        `endif
                       .opcode(opcode_D)
                   );
 
@@ -266,6 +275,9 @@ module datapath(
                    .predict_D    	(predict_D     ),
                    .ebreak_D     	(ebreak_D      ),
                    .type_D       	(type_D        ),
+`ifdef RV32M
+                   .mulsign_D    	(mulsign_D     ),
+`endif
 
                    // 数据
                    .PC_reg_D       (PC_reg_D        ),
@@ -293,6 +305,9 @@ module datapath(
                    .predict_E    	(predict_E     ),
                    .ebreak_E     	(ebreak_E      ),
                    .type_E       	(type_E        ),
+`ifdef RV32M
+                   .mulsign_E    	(mulsign_E     ),
+`endif
 
                    // 数据输出
                    .PC_reg_E       (PC_reg_E        ),
@@ -492,8 +507,13 @@ module datapath(
             .ALU_CTL(ALUControl_E),
             .ALU_ZERO(ALU_ZERO),
             .ALU_OverFlow(ALU_OverFlow),
+            `ifdef RV32M
+            .mulsign(mulsign_E), 
+            `endif
             .ALU_DC(ALUResult_E_RAW)
+
         );
+
     always @(*) begin
         case(ResultSrc_E)
             2'b00:

@@ -18,11 +18,16 @@ module mulcu_decoder(
         output mem_ren,
         output auipc,
         output [2:0] funct3,
+        `ifdef RV32M
+        output mulsign,
+        `endif
         output [6:0] opcode
     );
 
     wire funct7;
-
+    `ifdef RV32M
+        assign mulsign=(instr[25])&&(opcode==`R_type);
+    `endif
     assign opcode=instr[6:0];
     assign funct3=instr[14:12];
     assign funct7=instr[30];

@@ -1,7 +1,7 @@
 .PHONY: all run gdb clean latest $(ALL)
 
 RESULT = .result
-ARCH = riscv32e-npc
+ARCH = riscv32im-npc
 $(shell > $(RESULT))
 
 COLOR_RED   = \033[1;31m
