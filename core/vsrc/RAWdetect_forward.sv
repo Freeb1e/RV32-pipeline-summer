@@ -135,8 +135,8 @@ module RAWdetect_forward(
 
     // Stall condition: if any of the rs1 or rs2 is in conflict and not forwarded
     assign stall_D = 
-    ((~idle_E) & load_E & (conflict_rs1_E | ((~no_rs2) & conflict_rs2_E))) |
-     ((~idle_M) & (~valid_M) & (conflict_rs1_M | ((~no_rs2) & conflict_rs2_M)));
+    ((~idle_E) & load_E & (conflict_rs1_E | ((~no_rs2) & conflict_rs2_E)));
+     // |((~idle_M) & (~valid_M) & (conflict_rs1_M | ((~no_rs2) & conflict_rs2_M)));
 
     assign forward_rs1 = (FC_rs1_E_r) ? wdata_E_r :
                         (FC_rs1_M_r) ? wdata_M_r :
