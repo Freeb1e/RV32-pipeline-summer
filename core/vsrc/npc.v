@@ -66,14 +66,43 @@ module myCPU(
         .ReadData_M_valid(ReadData_M_valid) // 增加该信号
     );
     reg ReadData_M_valid_reg;
-    always @(posedge clk) begin
-        if(rst) begin
-            ReadData_M_valid_reg <= 1'b0;
-        end else begin
-            ReadData_M_valid_reg <= mem_ren & (~ReadData_M_valid);
-        end
+localparam S0 = 2'b00;
+localparam S1 = 2'b01;
+localparam S2 = 2'b10;
+
+reg [1:0] current_state, next_state;
+
+// 状态寄存器
+always @(posedge clk) begin
+    if(rst) begin
+        current_state <= S0;
+    end else begin
+        current_state <= next_state;
     end
-    assign ReadData_M_valid = ReadData_M_valid_reg;
+end
+
+// 状态转换逻辑
+always @(*) begin
+    case(current_state)
+        S0: begin
+            if(mem_ren)
+                next_state = S1;
+            else
+                next_state = S0;
+        end
+        S1: begin
+            next_state = S2; // 无论mem_ren是0还是1都转到S2
+        end
+        S2: begin
+            next_state = S0; // 无论mem_ren是0还是1都转到S0
+        end
+        default: next_state = S0;
+    endcase
+end
+
+// 输出逻辑 - ReadData_M_valid在S2状态时为高
+assign ReadData_M_valid = (current_state == S2);
+
 
 `endif
 

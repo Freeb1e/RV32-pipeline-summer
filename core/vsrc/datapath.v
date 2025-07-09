@@ -57,13 +57,13 @@ module datapath(
     // 数据AXI4Lite接口连接
     // 读通道
     assign data_axi_araddr = ALUResult_M;       // 使用ALU结果作为数据地址
-    assign data_axi_arvalid = MemRead_M;        // 当需要读内存时发起读请求
+    assign data_axi_arvalid =(~valid_M&&ready_M)?1'b0: MemRead_M;        // 当需要读内存时发起读请求
     assign data_axi_rready = ready_W;              // WB准备好时可以接收数据
     assign ReadData_M = data_axi_rdata;         // 从AXI读取的数据
 
     // 写通道
     assign data_axi_awaddr = ALUResult_M;       // 使用ALU结果作为写地址
-    assign data_axi_awvalid = MemWrite_M;       // 当需要写内存时发起写请求
+    assign data_axi_awvalid = (~valid_M&&ready_M)?1'b0:MemWrite_M;       // 当需要写内存时发起写请求
     assign data_axi_wdata = mem_data_out;       // 写数据
     assign data_axi_wstrb = wmask;         // 写字节使能，从wmask转换
     assign data_axi_wvalid = MemWrite_M;        // 写数据有效信号
