@@ -59,12 +59,14 @@ module buffer_D_E(
         input ALUSrc_D,
         input auipc_D,
         input [2:0] funct3_D,
-        input reg_ren_D,
-        input [6:0] opcode_D,
-        input jalr_D,
-        input predict_D,
-        input ebreak_D,
-        input [4:0] type_D,
+    input reg_ren_D,
+    input [6:0] opcode_D,
+    input jalr_D,
+    input predict_D,
+    input ebreak_D,
+    input [4:0] type_D,
+    input ecall_D,
+    input mret_D,
 `ifdef RV32M
         input mulsign_D,
 `endif
@@ -78,7 +80,11 @@ module buffer_D_E(
         input [4:0] Rs1_D,
         input [4:0] Rs2_D,
 
-        // 控制信号输出
+    // CSR相关输入
+    input CSR_REG_WEN_D,
+    input [4:0] CSR_REG_ADDR_D,
+    input [2:0] csr_ctrl_D,
+    // 控制信号输出
         output reg RegWrite_E,
         output reg [1:0] ResultSrc_E,
         output reg MemWrite_E,
@@ -98,6 +104,10 @@ module buffer_D_E(
 `ifdef RV32M
         output reg mulsign_E,
 `endif
+    // CSR相关输出
+    output reg CSR_REG_WEN_E,
+    output reg [4:0] CSR_REG_ADDR_E,
+    output reg [2:0] csr_ctrl_E,
 
         // 数据通路输出
         output reg [31:0] PC_reg_E,
@@ -106,7 +116,9 @@ module buffer_D_E(
         output reg [31:0] rdata2_E,
         output reg [4:0] Rd_E,
         output reg [4:0] Rs1_E,
-        output reg [4:0] Rs2_E
+    output reg [4:0] Rs2_E,
+    output reg ecall_E,
+    output reg mret_E
     );
 
     // 控制和数据通路信号统一处理
@@ -129,9 +141,14 @@ module buffer_D_E(
             predict_E <= 1'b0;
             ebreak_E <= 1'b0;
             type_E <= 5'b0;
+            ecall_E <= 1'b0;
+            mret_E <= 1'b0;
 `ifdef RV32M
             mulsign_E <= 1'b0;
 `endif
+            CSR_REG_WEN_E <= 1'b0;
+            CSR_REG_ADDR_E <= 5'b0;
+            csr_ctrl_E <= 3'b0;
 
             // 数据通路复位
             PC_reg_E <= 32'h8000_0000;
@@ -141,8 +158,8 @@ module buffer_D_E(
             Rd_E <= 5'b0;
             Rs1_E <= 5'b0;
             Rs2_E <= 5'b0;
-        end
-        else if (valid_D & ready_E) begin
+    end
+    else if (valid_D & ready_E) begin
             // 控制信号赋值
             RegWrite_E <= RegWrite_D;
             ResultSrc_E <= ResultSrc_D;
@@ -160,9 +177,14 @@ module buffer_D_E(
             predict_E <= predict_D;
             ebreak_E <= ebreak_D;
             type_E <= type_D;
+            ecall_E <= ecall_D;
+            mret_E <= mret_D;
 `ifdef RV32M
             mulsign_E <= mulsign_D;
 `endif
+            CSR_REG_WEN_E <= CSR_REG_WEN_D;
+            CSR_REG_ADDR_E <= CSR_REG_ADDR_D;
+            csr_ctrl_E <= csr_ctrl_D;
 
             // 数据通路赋值
             PC_reg_E <= PC_reg_D;
@@ -172,7 +194,7 @@ module buffer_D_E(
             Rd_E <= Rd_D;
             Rs1_E <= Rs1_D;
             Rs2_E <= Rs2_D;
-        end
+    end
     end
 
 
@@ -186,7 +208,11 @@ module buffer_E_M(
         input valid_E,
         input ready_M,
 
-        // 控制信号输入
+    // CSR相关输入
+    input CSR_REG_WEN_E,
+    input [4:0] CSR_REG_ADDR_E,
+    input [2:0] csr_ctrl_E,
+    // 控制信号输入
         input RegWrite_E,
         input [1:0] ResultSrc_E,
         input MemWrite_E,
@@ -203,6 +229,10 @@ module buffer_E_M(
         input [31:0] imme_E,
 
         // 控制信号输出
+    // CSR相关输出
+    output reg CSR_REG_WEN_M,
+    output reg [4:0] CSR_REG_ADDR_M,
+    output reg [2:0] csr_ctrl_M,
         output reg RegWrite_M,
         output reg [1:0] ResultSrc_M,
         output reg MemWrite_M,
@@ -216,7 +246,7 @@ module buffer_E_M(
         output reg [31:0] WriteData_M,
         output reg [4:0] Rd_M,
         output reg [31:0] PC_reg_M,
-        output reg [31:0] imme_M
+    output reg [31:0] imme_M
     );
 
     // 控制和数据通路信号统一处理
@@ -230,6 +260,9 @@ module buffer_E_M(
             funct3_M <= 3'b0;
             ebreak_M <= 1'b0;
             type_M <= 5'b0;
+            CSR_REG_WEN_M <= 1'b0;
+            CSR_REG_ADDR_M <= 5'b0;
+            csr_ctrl_M <= 3'b0;
 
             // 数据通路复位
             ALUResult_M <= 32'b0;
@@ -237,8 +270,8 @@ module buffer_E_M(
             Rd_M <= 5'b0;
             PC_reg_M <= 32'h80000000;
             imme_M <= 32'b0;
-        end
-        else if (valid_E & ready_M) begin
+    end
+    else if (valid_E & ready_M) begin
             // 控制信号赋值
             RegWrite_M <= RegWrite_E;
             ResultSrc_M <= ResultSrc_E;
@@ -247,6 +280,9 @@ module buffer_E_M(
             funct3_M <= funct3_E;
             ebreak_M <= ebreak_E;
             type_M <= type_E;
+            CSR_REG_WEN_M <= CSR_REG_WEN_E;
+            CSR_REG_ADDR_M <= CSR_REG_ADDR_E;
+            csr_ctrl_M <= csr_ctrl_E;
 
             // 数据通路赋值
             ALUResult_M <= ALUResult_E;
@@ -254,7 +290,7 @@ module buffer_E_M(
             Rd_M <= Rd_E;
             PC_reg_M <= PC_reg_E;
             imme_M <= imme_E;
-        end
+    end
     end
 
 endmodule
@@ -267,7 +303,11 @@ module buffer_M_W(
         input valid_M,
         input ready_W,
 
-        // 控制信号输入
+    // CSR相关输入
+    input CSR_REG_WEN_M,
+    input [4:0] CSR_REG_ADDR_M,
+    input [2:0] csr_ctrl_M,
+    // 控制信号输入
         input RegWrite_M,
         input [1:0] ResultSrc_M,
         input [2:0] funct3_M,
@@ -282,6 +322,10 @@ module buffer_M_W(
         input [31:0] imme_M,
 
         // 控制信号输出
+    // CSR相关输出
+    output reg CSR_REG_WEN_W,
+    output reg [4:0] CSR_REG_ADDR_W,
+    output reg [2:0] csr_ctrl_W,
         output reg RegWrite_W,
         output reg [1:0] ResultSrc_W,
         output reg [2:0] funct3_W,
@@ -293,7 +337,7 @@ module buffer_M_W(
         output reg [31:0] ReadData_W,
         output reg [4:0] Rd_W,
         output reg [31:0] PC_reg_W,
-        output reg [31:0] imme_W
+    output reg [31:0] imme_W
     );
 
     // 控制和数据通路信号统一处理
@@ -305,6 +349,9 @@ module buffer_M_W(
             funct3_W <= 3'b0;
             ebreak_W <= 1'b0;
             type_W <= 5'b0;
+            CSR_REG_WEN_W <= 1'b0;
+            CSR_REG_ADDR_W <= 5'b0;
+            csr_ctrl_W <= 3'b0;
 
             // 数据通路复位
             ALUResult_W <= 32'b0;
@@ -312,14 +359,17 @@ module buffer_M_W(
             Rd_W <= 5'b0;
             PC_reg_W <= 32'h8000_0000; // 注意：此寄存器有特殊的复位值
             imme_W <= 32'b0;
-        end
-        else if (valid_M & ready_W) begin
+    end
+    else if (valid_M & ready_W) begin
             // 控制信号赋值
             RegWrite_W <= RegWrite_M;
             ResultSrc_W <= ResultSrc_M;
             funct3_W <= funct3_M;
             ebreak_W <= ebreak_M;
             type_W <= type_M;
+            CSR_REG_WEN_W <= CSR_REG_WEN_M;
+            CSR_REG_ADDR_W <= CSR_REG_ADDR_M;
+            csr_ctrl_W <= csr_ctrl_M;
 
             // 数据通路赋值
             ALUResult_W <= ALUResult_M;
@@ -327,7 +377,7 @@ module buffer_M_W(
             Rd_W <= Rd_M;
             PC_reg_W <= PC_reg_M;
             imme_W <= imme_M;
-        end
+    end
     end
 
 endmodule
