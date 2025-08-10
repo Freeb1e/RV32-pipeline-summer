@@ -82,7 +82,25 @@ module myCPU(
     // output declaration of module memory
 `ifdef SIMULATION
  wire stop_sim;
-
+    // output declaration of module uart_tx_fifo
+    reg uart_txd;
+    reg tx_done;
+    wire fifo_full;
+    
+    uart_tx_fifo #(
+        .SYS_CLK_FRE 	(50_000_000  ),
+        .BPS         	(25000000    ))
+    u_uart_tx_fifo(
+        .sys_clk         	(clk          ),
+        .sys_rst_n       	(~rst        ),
+        .cpu_addr        	(data_axi_awaddr         ),
+        .cpu_wr_en_buf   	(data_axi_awvalid    ),
+        .cpu_wr_data_buf 	(data_axi_wdata[7:0]  ),
+        .uart_txd        	(uart_txd         ),
+        .tx_done         	(tx_done          ),
+        .fifo_full       	(fifo_full        )
+    );
+    
     datapath datapath1(
                  .clk(clk),
                  .rst(rst),
@@ -165,7 +183,7 @@ module myCPU(
                .rdata 	(data_axi_rdata  )
            );
     wire data_axi_rvalid_reg;
-    assign data_axi_rvalid_reg = data_axi_arvalid; // 延迟一个周期读出数据
+    //assign data_axi_rvalid_reg = data_axi_arvalid; // 延迟一个周期读出数据
     // reg data_axi_rvalid_reg;
     // always @(posedge clk) begin
     //     if(rst) begin
@@ -174,6 +192,18 @@ module myCPU(
     //         data_axi_rvalid_reg <= data_axi_arvalid; //延迟一个周期读出数据
     //     end
     // end
+
+assign data_axi_rvalid_reg = ReadData_M_valid_reg;
+wire ReadData_M_valid;
+        reg ReadData_M_valid_reg;
+    always @(posedge clk) begin
+        if(rst) begin
+            ReadData_M_valid_reg <= 1'b0;
+        end else begin
+            ReadData_M_valid_reg <= data_axi_arvalid & (~ReadData_M_valid);
+        end
+    end
+    assign ReadData_M_valid = ReadData_M_valid_reg;
 
     memory #(.IS_IF(1)) u_instr(
                .raddr 	(inst_axi_araddr  ),     // 使用AXI指令地址
