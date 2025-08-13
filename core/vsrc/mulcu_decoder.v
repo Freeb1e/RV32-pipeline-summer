@@ -21,6 +21,13 @@ module mulcu_decoder(
         `ifdef RV32M
         output mulsign,
         `endif
+        //--------CSR扩展-----------
+        output CSR_REG_WEN,
+        output reg [4:0] CSR_REG_ADDR,
+        output [2:0] csr_ctrl, 
+        output ecall,
+        output mret,
+        //--------------------------
         output [6:0] opcode
     );
 
@@ -60,14 +67,41 @@ module mulcu_decoder(
 
     assign auipc=(opcode==`auipc);
 
-    assign reg_wen=~(opcode==`store | opcode==`B_type | opcode==7'b0000000);
+    assign reg_wen=(opcode==`R_type || opcode==`I_type || opcode==`load || opcode==`jal || opcode==`jalr || opcode==`lui || opcode==`auipc || opcode==`CSR_OPCODE||csrrw || csrrs);
     assign reg_ren=1'b1;
 
     assign ALU_DB_Src=(opcode==`B_type | opcode==`R_type)?1'b1:1'b0;
 
     assign mem_wen=(opcode==`store)?1'b1:1'b0;
     assign mem_ren=(opcode==`load )?1'b1:1'b0;
-
+//-------------------------------CSR寄存器相关---------------------------------
+    assign CSR_REG_WEN=(csrrw|csrrs)?1'b1:1'b0; // CSRRW
+    //assign CSR_REG_ADDR=instr[31:20]; // 12位CSR寄存器地址
+    always@(*)begin
+        case(instr[31:20])
+            12'h305: CSR_REG_ADDR = 5'd1; // mtvec
+            12'h300: CSR_REG_ADDR = 5'd2; // mstatus
+            12'h341: CSR_REG_ADDR = 5'd3; // mepc
+            12'h342: CSR_REG_ADDR = 5'd4; // mcause
+            default: CSR_REG_ADDR = 5'd0; // 其它寄存器可自定义
+        endcase
+    end
+    wire csrrw;
+    assign csrrw=(opcode==`CSR_OPCODE && funct3==3'b001);
+    wire csrrs;
+    assign csrrs=(opcode==`CSR_OPCODE && funct3==3'b010);
+    always @(*) begin
+        if (csrrw|csrrs) begin
+            csr_ctrl = 3'b001; // CSRRW
+        end else if (csrrs) begin
+            csr_ctrl = 3'b010; // CSRRS
+        end else begin
+            csr_ctrl = 3'b000; // 默认值
+        end
+    end
+    assign ecall=(opcode==`CSR_OPCODE && funct3==3'b000 && instr[31:20]==12'h000); // ecall指令
+    assign mret=(opcode==`CSR_OPCODE && funct3==3'b000 && instr[31:20]==12'h302); // mret指令
+//----------------------------------------------------------------------------
     //00:来自ALU 01:来自data 10:来自PC 11:来自imme
     always@(*) begin
         case(opcode)

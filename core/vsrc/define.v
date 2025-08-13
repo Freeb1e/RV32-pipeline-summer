@@ -9,6 +9,9 @@
 `define		store			7'b0100011
 `define		I_type			7'b0010011
 `define		R_type			7'b0110011
+
+
+`define     CSR_OPCODE      7'b1110011
 /*
 `define 	ADD  			4'b0001
 `define 	SUB  			4'b0011
