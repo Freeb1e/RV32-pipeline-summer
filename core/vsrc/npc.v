@@ -103,6 +103,20 @@ module myCPU(
         .tx_done         	(tx_done          ),
         .fifo_full       	(fifo_full        )
     );
+    // output declaration of module uart_rx
+    wire uart_rx_done;
+    wire [7:0] uart_rx_data;
+    
+    uart_rx #(
+        .BPS         	(9600        ),
+        .SYS_CLK_FRE 	(50_000_000  ))
+    u_uart_rx(
+        .sys_clk      	(clk       ),
+        .sys_rst_n    	(~rst     ),
+        .uart_rxd     	(uart_txd       ),
+        .uart_rx_done 	(uart_rx_done  ),
+        .uart_rx_data 	(uart_rx_data  )
+    );
     
     datapath datapath1(
                  .clk(clk),
@@ -183,8 +197,12 @@ module myCPU(
                .wmask 	({4'h0, data_axi_wstrb}  ),
                .wen   	(data_axi_awvalid ),     // 使用AXI写有效信号
                .valid 	(data_axi_arvalid | data_axi_awvalid ), // 读或写有效
-               .rdata 	(data_axi_rdata  )
+               .rdata 	(data_axi_rdata_memory  ) // 输出数据
            );
+    wire [31:0] data_axi_rdata_memory;
+    wire [31:0] UART_CSR;
+    assign UART_CSR ={ 27'b0,  tx_done,  1'b0, 1'b0, 1'b0, fifo_full };
+    assign data_axi_rdata = (data_axi_araddr==`UART_ADDR) ?  UART_CSR:data_axi_rdata_memory;
     wire data_axi_rvalid_reg;
     //assign data_axi_rvalid_reg = data_axi_arvalid; // 延迟一个周期读出数据
     // reg data_axi_rvalid_reg;

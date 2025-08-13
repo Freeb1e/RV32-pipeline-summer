@@ -41,3 +41,4 @@
 `define     XOR  			4'd14   // 4'b1110
 
 `define     PC_rst         32'h8000_0000
+`define     UART_ADDR     32'ha00003f8

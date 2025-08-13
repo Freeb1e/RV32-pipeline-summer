@@ -1,3 +1,4 @@
+`include "define.v"
 module uart_tx_fifo(
 	input 			sys_clk,		//50M系统时钟
 	input 			sys_rst_n,		//系统复位
@@ -53,7 +54,7 @@ wire pos_uart_en_txd;
 
 // CPU写入控制逻辑
 wire cpu_write_valid;
-assign cpu_write_valid = cpu_wr_en && (cpu_addr == 32'ha00003f8) && (fifo_cnt < FIFO_DEPTH);
+assign cpu_write_valid = cpu_wr_en && (cpu_addr == `UART_ADDR) && (fifo_cnt < FIFO_DEPTH);
 
 // FIFO满标志信号
 assign fifo_full = (fifo_cnt >= FIFO_DEPTH);
