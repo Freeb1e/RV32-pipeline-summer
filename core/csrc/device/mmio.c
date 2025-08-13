@@ -1,14 +1,13 @@
 #include <device.h>
+#include <cpu.h>
 
 extern int sim_time;
 void difftest_skip_ref();
 
 bool in_mmio(paddr_t addr) {
-    bool ret = (addr==SERIAL_PORT) ||
-                (addr>=RTC_ADDR && addr<RTC_ADDR+0x8) ||
-                (addr==SEG_ADDR) ||
-                (addr==LED_ADDR) ||
-                (addr==CNT_ADDR);
+    bool ret = (addr == UART_TX) || 
+               (addr == UART_STATUS) ||
+               (addr >= RTC_ADDR && addr < RTC_ADDR + 0x8);
     // if(ret) printf(FMT_WORD " is mmio address\n", addr);
     // else printf(FMT_WORD " is not mmio address\n", addr);
     return ret;
@@ -17,87 +16,23 @@ bool in_mmio(paddr_t addr) {
 void difftest_skip_ref();
 extern int sim_time;
 
-uint32_t seg_data = 0;
-void write_seg_data(uint32_t data)
-{
-    seg_data = data;
-    char digits[8];
-    for (int i = 0; i < 8; i++)
-    {
-        digits[i] = (data >> (i * 4)) & 0xF;
-    }
-    printf("SEG display:" ANSI_FMT("%1d%1d %1d%1d %1d%1d %1d%1d", ANSI_COLOR_CYAN) "\n",
-           digits[7], digits[6], digits[5], digits[4],
-           digits[3], digits[2], digits[1], digits[0]);
-}
-
-uint32_t read_seg_data()
-{
-    return seg_data;
-}
-
-void write_led_data(uint32_t data)
-{
-    printf("LED display:\n");
-    for (int i = 0; i < 4; i++)
-    {
-        for (int j = 0; j < 8; j++)
-        {
-            if (data >> (31-(i * 8 + j)) & 0x1)
-            {
-                if(i%2 == 0)
-                    printf(ANSI_COLOR_RED "● " ANSI_COLOR_RESET);
-                else
-                    printf(ANSI_COLOR_GREEN "● " ANSI_COLOR_RESET);
-            }
-            else
-            {
-                if(i%2 == 0)
-                    printf(ANSI_COLOR_RED "○ " ANSI_COLOR_RESET);
-                else
-                    printf(ANSI_COLOR_GREEN "○ " ANSI_COLOR_RESET);
-            }
-        }
-        printf("\n");
-    }
-}
-
-uint32_t counter = 1234;
-void write_counter_data(uint32_t data)
-{
-    counter = data;
-}
-
-uint32_t read_counter_data()
-{
-    return counter;
-}
-
 uint32_t mmio_read(paddr_t addr)
 {
     // printf("MMIO read from " FMT_WORD "\n", addr);
     // prevent repeat read
-    static int last_simtime;
-    if (sim_time - last_simtime < 3)
-    {
-        return 0;
-    }
-    last_simtime = sim_time;
 
 #ifdef CONFIG_DIFFTEST
     difftest_skip_ref();
 #endif
-
-    if (addr == SERIAL_PORT)
+    uint32_t ret = 0;
+    if (addr == UART_RX || addr == UART_STATUS)
     {
-        return 0;
-    }
+        ret = uart_read(addr);
+    } 
     else if (addr >= RTC_ADDR && addr < RTC_ADDR + 0x8)
     {
         uint32_t offset = addr - RTC_ADDR;
         Assert(offset == 0 || offset == 4, "RTC offset cannot be %d\n", offset);
-
-        uint32_t ret;
         if (offset == 0)
         {
             // low 32 bits of time
@@ -108,26 +43,28 @@ uint32_t mmio_read(paddr_t addr)
             // high 32 bits of time
             ret = get_time() >> 32;
         }
+    }
+
+#ifdef CONFIG_DTRACE
+    static int last_raddr, last_ret;
+    CPU_reg _this = get_cpu_state();
+    if (_this.pc == addr)
+    {
         return ret;
     }
-    else if (addr == SEG_ADDR)
+    if (last_raddr != addr || last_ret != ret)
     {
-        return read_seg_data();
+        printf(ANSI_BOLD ANSI_COLOR_CYAN "DTRACE" ANSI_COLOR_RESET "(NPC) " FMT_WORD ":read from " FMT_WORD ", get " FMT_WORD "\n", _this.pc, addr, ret);
+        last_raddr = addr;
+        last_ret = ret;
     }
-    else if (addr == LED_ADDR)
-    {
-        return 0xDEADBEEF; // return a dummy value for LED
-    }
-    else if (addr == CNT_ADDR)
-    {
-        return read_counter_data();
-    }
-    return 0;
+#endif
+
+    return ret;
 }
 
 void mmio_write(paddr_t addr, uint32_t data)
 {
-    // printf("MMIO write to " FMT_WORD ": " FMT_WORD "\n", addr, data);
     #ifdef CONFIG_DIFFTEST
     difftest_skip_ref();
     #endif
@@ -138,25 +75,19 @@ void mmio_write(paddr_t addr, uint32_t data)
         return;
     }
     last_simtime = sim_time;
-    if (addr == SERIAL_PORT)
+
+#ifdef CONFIG_DTRACE
+    CPU_reg _this = get_cpu_state();
+    printf(ANSI_BOLD ANSI_COLOR_CYAN "DTRACE" ANSI_COLOR_RESET "(NPC) " FMT_WORD ":write " FMT_WORD " to " FMT_WORD "\n", _this.pc, data, addr);
+#endif
+
+    if (addr == UART_TX || addr == UART_STATUS)
     {
-        putchar((char)data);
+        uart_write(addr, data);
     }
     else if (addr >= RTC_ADDR && addr < RTC_ADDR + 0x8)
     {
         return;
-    }
-    else if (addr == SEG_ADDR)
-    {
-        write_seg_data(data);
-    }
-    else if (addr == LED_ADDR)
-    {
-        write_led_data(data);
-    }
-    else if (addr == CNT_ADDR)
-    {
-        write_counter_data(data);
     }
     else
     {

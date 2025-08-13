@@ -52,7 +52,7 @@ void statistics_display();
 #define Assert(cond, format, ...) \
   do { \
     if (!(cond)) { \
-      fprintf(stderr, ANSI_BOLD ANSI_COLOR_RED format ANSI_COLOR_RESET, ## __VA_ARGS__); \
+      fprintf(stderr, ANSI_BOLD ANSI_COLOR_RED format ANSI_COLOR_RESET __VA_OPT__(,) __VA_ARGS__); \
       display_error_msg(); \
       assert(0); \
     } \

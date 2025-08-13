@@ -32,7 +32,7 @@ module valid_ctrl(
             end else if(ready_D || (stall & valid_D_reg)) begin
                 valid_D_reg <= valid_F; 
             end else if(ready_E) begin
-                valid_D_reg <= 1'b0; // 如果D级未ready，取消valid
+                valid_D_reg <= 1'b0; 
             end
         end
     end
@@ -41,12 +41,12 @@ module valid_ctrl(
         if (rst) begin
             valid_E_reg <= 1'b0;
         end else begin
-            if(Pre_Wrong & valid_E & ready_M) begin
+            if(Pre_Wrong & valid_E) begin
                 valid_E_reg <= 1'b0;
             end else if (ready_E) begin
                 valid_E_reg <= valid_D;
             end else if(ready_M) begin
-                valid_E_reg <= 1'b0; // 如果E级未ready，取消valid
+                valid_E_reg <= 1'b0;
             end
         end
 

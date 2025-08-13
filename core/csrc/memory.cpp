@@ -102,7 +102,7 @@ extern "C" int pmem_read(int raddr, char is_IF) {
   }
   if (last_raddr != raddr || last_ret != ret) {
     if (!is_IF)
-      printf("(NPC) " FMT_WORD ":read from " FMT_WORD ", get " FMT_WORD "\n", _this.pc, raddr, ret);
+      printf(ANSI_BOLD ANSI_COLOR_YELLOW "MTRACE" ANSI_COLOR_RESET "(NPC) " FMT_WORD ":read from " FMT_WORD ", get " FMT_WORD "\n", _this.pc, raddr, ret);
     last_raddr = raddr;
     last_ret = ret;
   }
@@ -112,7 +112,6 @@ extern "C" int pmem_read(int raddr, char is_IF) {
 }
 
 extern "C" void pmem_write(int waddr, int wdata, char wmask, char is_IF) {
-  
   uint32_t addr = waddr;
 
   // MMIO
@@ -145,10 +144,11 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask, char is_IF) {
   uint32_t ret = (*p & ~mask) | (wdata & mask);
   *p = ret;
 
-  #ifdef CONFIG_MTRACE
+#ifdef CONFIG_MTRACE
   CPU_reg _this = get_cpu_state();
-  if(!is_IF) printf("(NPC) " FMT_WORD ":write " FMT_WORD " to " FMT_WORD "\n", _this.pc, ret, waddr);
-  #endif
+  if(!is_IF)
+    printf(ANSI_BOLD ANSI_COLOR_YELLOW "MTRACE" ANSI_COLOR_RESET "(NPC) " FMT_WORD ":write " FMT_WORD " to " FMT_WORD "\n", _this.pc, ret, waddr);
+#endif
 }
 
 uint8_t pmem_read(uint32_t addr){
