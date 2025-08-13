@@ -202,7 +202,7 @@ module myCPU(
     wire [31:0] data_axi_rdata_memory;
     wire [31:0] UART_CSR;
     assign UART_CSR ={ 27'b0,  tx_done,  1'b0, 1'b0, 1'b0, fifo_full };
-    assign data_axi_rdata = (data_axi_araddr==`UART_ADDR) ?  UART_CSR:data_axi_rdata_memory;
+    assign data_axi_rdata = (data_axi_araddr==`UART_DATA_ADDR) ? {24'b0,uart_rx_data}:((data_axi_araddr==`UART_CTRL_ADDR) ?UART_CSR:data_axi_rdata_memory);
     wire data_axi_rvalid_reg;
     //assign data_axi_rvalid_reg = data_axi_arvalid; // 延迟一个周期读出数据
     // reg data_axi_rvalid_reg;
