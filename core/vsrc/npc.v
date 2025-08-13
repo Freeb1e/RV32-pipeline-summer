@@ -22,7 +22,8 @@ module myCPU(
         output wire perip_wen,
         output wire [1:0] perip_mask,
         output wire [31:0] perip_wdata,
-        input wire [31:0] perip_rdata
+        input wire [31:0] perip_rdata,
+        output wire uart_txd
 `endif
     );
 
@@ -39,6 +40,7 @@ module myCPU(
 `ifndef SIMULATION
     wire rst;
     wire clk;
+    
     assign clk = cpu_clk;
     assign rst = cpu_rst;
     assign irom_addr = PC_reg;
@@ -63,7 +65,8 @@ module myCPU(
         .ALUResult_E(ALU_DC),
         .PC_reg_F(PC_reg),
         .wmask(perip_mask),
-        .ReadData_M_valid(ReadData_M_valid) // 增加该信号
+        .ReadData_M_valid(ReadData_M_valid), // 增加该信号
+        .uart_txd(uart_txd)
     );
     reg ReadData_M_valid_reg;
     always @(posedge clk) begin
@@ -99,6 +102,20 @@ module myCPU(
         .uart_txd        	(uart_txd         ),
         .tx_done         	(tx_done          ),
         .fifo_full       	(fifo_full        )
+    );
+    // output declaration of module uart_rx
+    wire uart_rx_done;
+    wire [7:0] uart_rx_data;
+    
+    uart_rx #(
+        .BPS         	(9600        ),
+        .SYS_CLK_FRE 	(50_000_000  ))
+    u_uart_rx(
+        .sys_clk      	(clk       ),
+        .sys_rst_n    	(~rst     ),
+        .uart_rxd     	(uart_txd       ),
+        .uart_rx_done 	(uart_rx_done  ),
+        .uart_rx_data 	(uart_rx_data  )
     );
     
     datapath datapath1(
@@ -180,8 +197,12 @@ module myCPU(
                .wmask 	({4'h0, data_axi_wstrb}  ),
                .wen   	(data_axi_awvalid ),     // 使用AXI写有效信号
                .valid 	(data_axi_arvalid | data_axi_awvalid ), // 读或写有效
-               .rdata 	(data_axi_rdata  )
+               .rdata 	(data_axi_rdata_memory  ) // 输出数据
            );
+    wire [31:0] data_axi_rdata_memory;
+    wire [31:0] UART_CSR;
+    assign UART_CSR ={ 27'b0,  tx_done,  1'b0, 1'b0, 1'b0, fifo_full };
+    assign data_axi_rdata = (data_axi_araddr==`UART_DATA_ADDR) ? {24'b0,uart_rx_data}:((data_axi_araddr==`UART_CTRL_ADDR) ?UART_CSR:data_axi_rdata_memory);
     wire data_axi_rvalid_reg;
     //assign data_axi_rvalid_reg = data_axi_arvalid; // 延迟一个周期读出数据
     // reg data_axi_rvalid_reg;
@@ -254,7 +275,8 @@ module datapath_wrapper(
     output MemRead_M,
     output reg [1:0] wmask,
     output reg [31:0] ALUResult_E,
-    output [31:0] PC_reg_F
+    output [31:0] PC_reg_F,
+    output uart_txd
 );
 
     wire [3:0] data_axi_wstrb;
@@ -285,6 +307,24 @@ module datapath_wrapper(
         .data_axi_bresp   	(2'b00    ),
         .data_axi_bvalid  	(1'b1   ),
         .data_axi_bready  	(   )
+    );
+
+    reg uart_txd;
+    reg tx_done;
+    wire fifo_full;
+    
+    uart_tx_fifo #(
+        .SYS_CLK_FRE 	(50_000_000  ),
+        .BPS         	(25000000    ))
+    u_uart_tx_fifo(
+        .sys_clk         	(clk          ),
+        .sys_rst_n       	(~rst        ),
+        .cpu_addr        	(mem_addr         ),
+        .cpu_wr_en_buf   	(MemWrite_M    ),
+        .cpu_wr_data_buf 	(mem_data_out[7:0]  ),
+        .uart_txd        	(uart_txd         ),
+        .tx_done         	(tx_done          ),
+        .fifo_full       	(fifo_full        )
     );
     always @(*) begin
         case (data_axi_wstrb)

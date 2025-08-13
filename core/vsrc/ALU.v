@@ -130,7 +130,9 @@ reg [31:0] ALU_DC_I;
     wire [63:0]        mul_unsigned_unsigned = $unsigned(ALU_DA) * $unsigned(ALU_DB);
     wire [63:0]        mul_signed_unsigned = $signed(ALU_DA) * $unsigned(ALU_DB);
     reg [31:0] M_result;
-    assign ALU_DC = (mulsign) ? M_result : ALU_DC_I;
+    always@(*) begin
+    ALU_DC = (mulsign) ? M_result : ALU_DC_I;
+    end
     always @(*) begin
         case(ALU_CTL)
             `ADD:   M_result = mul_signed_signed[31:0]; // MUL
