@@ -22,7 +22,8 @@ module myCPU(
         output wire perip_wen,
         output wire [1:0] perip_mask,
         output wire [31:0] perip_wdata,
-        input wire [31:0] perip_rdata
+        input wire [31:0] perip_rdata,
+        output wire uart_txd
 `endif
     );
 
@@ -39,6 +40,7 @@ module myCPU(
 `ifndef SIMULATION
     wire rst;
     wire clk;
+    
     assign clk = cpu_clk;
     assign rst = cpu_rst;
     assign irom_addr = PC_reg;
@@ -63,7 +65,8 @@ module myCPU(
         .ALUResult_E(ALU_DC),
         .PC_reg_F(PC_reg),
         .wmask(perip_mask),
-        .ReadData_M_valid(ReadData_M_valid) // 增加该信号
+        .ReadData_M_valid(ReadData_M_valid), // 增加该信号
+        .uart_txd(uart_txd)
     );
     reg ReadData_M_valid_reg;
     always @(posedge clk) begin
@@ -254,7 +257,8 @@ module datapath_wrapper(
     output MemRead_M,
     output reg [1:0] wmask,
     output reg [31:0] ALUResult_E,
-    output [31:0] PC_reg_F
+    output [31:0] PC_reg_F,
+    output uart_txd
 );
 
     wire [3:0] data_axi_wstrb;
@@ -285,6 +289,24 @@ module datapath_wrapper(
         .data_axi_bresp   	(2'b00    ),
         .data_axi_bvalid  	(1'b1   ),
         .data_axi_bready  	(   )
+    );
+
+    reg uart_txd;
+    reg tx_done;
+    wire fifo_full;
+    
+    uart_tx_fifo #(
+        .SYS_CLK_FRE 	(50_000_000  ),
+        .BPS         	(25000000    ))
+    u_uart_tx_fifo(
+        .sys_clk         	(clk          ),
+        .sys_rst_n       	(~rst        ),
+        .cpu_addr        	(mem_addr         ),
+        .cpu_wr_en_buf   	(MemWrite_M    ),
+        .cpu_wr_data_buf 	(mem_data_out[7:0]  ),
+        .uart_txd        	(uart_txd         ),
+        .tx_done         	(tx_done          ),
+        .fifo_full       	(fifo_full        )
     );
     always @(*) begin
         case (data_axi_wstrb)

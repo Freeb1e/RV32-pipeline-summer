@@ -680,7 +680,8 @@ module datapath(
     // output declaration of module CSR
     wire [31:0] csr_rdata;
     reg [31:0] csr_wdata;
-    reg [31:0] epc_in, cause_in, mtvec_out,mepc_out,mstatus_out;
+    reg [31:0] epc_in, cause_in;
+    wire [31:0] mtvec_out,mepc_out,mstatus_out;
     reg exception_we;
     CSR u_CSR(
             .clk       	(clk        ),

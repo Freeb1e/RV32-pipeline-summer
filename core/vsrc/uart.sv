@@ -13,7 +13,7 @@ parameter 	SYS_CLK_FRE = 50_000_000;    //50M系统时钟
 //parameter 	BPS = 9_600;                 //波特率9600bps
 parameter 	BPS = 25000000;               //波特率115200bps
 //localparam	BPS_CNT = SYS_CLK_FRE/BPS;   //传输一位数据所需要的时钟个数
-localparam	BPS_CNT = 2; 
+localparam	BPS_CNT = 10; 
 
 // FIFO参数
 localparam FIFO_DEPTH = 16;
@@ -222,7 +222,8 @@ module uart_rx(
 
      parameter	BPS=9600;					
      parameter	SYS_CLK_FRE=50_000_000;		
-     localparam	BPS_CNT=SYS_CLK_FRE/BPS;	
+    // localparam	BPS_CNT=SYS_CLK_FRE/BPS;
+	localparam	BPS_CNT=10;	
      
      reg 			uart_rx_d0;		
      reg 			uart_rx_d1;		
