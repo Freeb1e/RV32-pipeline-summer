@@ -32,6 +32,9 @@
 #define ANSI_BG_CYAN       "\x1b[46m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
+#define concat_temp(x, y) x##y
+#define concat(x, y) concat_temp(x, y)
+
 #define FMT_WORD "0x%08x"
 #define ANSI_FMT(fmt, color) ANSI_BOLD color fmt ANSI_COLOR_RESET
 
@@ -67,5 +70,8 @@ void statistics_display();
   do { \
     Assert(0, format, __VA_ARGS__); \
   } while (0)
+
+#define VDUT_NAME npc
+typedef concat(V, VDUT_NAME) Vdut;
 
 #endif

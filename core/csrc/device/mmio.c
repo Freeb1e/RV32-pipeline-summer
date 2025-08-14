@@ -2,7 +2,11 @@
 #include <cpu.h>
 
 extern int sim_time;
-void difftest_skip_ref();
+extern uint8_t skip_difftest;
+void skip_ref()
+{
+    skip_difftest = 1;
+}
 
 bool in_mmio(paddr_t addr) {
     bool ret = (addr == UART_TX) || 
@@ -13,7 +17,6 @@ bool in_mmio(paddr_t addr) {
     return ret;
 }
 
-void difftest_skip_ref();
 extern int sim_time;
 
 uint32_t mmio_read(paddr_t addr)
@@ -21,9 +24,7 @@ uint32_t mmio_read(paddr_t addr)
     // printf("MMIO read from " FMT_WORD "\n", addr);
     // prevent repeat read
 
-#ifdef CONFIG_DIFFTEST
-    difftest_skip_ref();
-#endif
+    skip_ref();
     uint32_t ret = 0;
     if (addr == UART_RX || addr == UART_STATUS)
     {
@@ -65,9 +66,7 @@ uint32_t mmio_read(paddr_t addr)
 
 void mmio_write(paddr_t addr, uint32_t data)
 {
-    #ifdef CONFIG_DIFFTEST
-    difftest_skip_ref();
-    #endif
+    skip_ref();
     // prevent repeat write
     static int last_simtime;
     if (sim_time - last_simtime < 3)

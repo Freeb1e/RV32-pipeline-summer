@@ -2,10 +2,9 @@
 #include <memory.h>
 #include <sdb.h>
 
-int sim_time;
+uint8_t skip_difftest = 0;
 Vnpc *dut;
 CPU_state state;
-VerilatedVcdC *m_trace;
 int halt_ret;
 uint32_t halt_pc;
 static bool g_print_step = false;
@@ -18,45 +17,33 @@ uint32_t nr_cycle = 0;
 /* trace */
 void write_iringbuf(vaddr_t pc, uint32_t inst);
 void ftrace(vaddr_t pc, uint32_t inst);
+/* wave */
+void EvalAndWaveTrace(Vdut *dut);
+void DeinitWaveTrace();
 /* difftest */
 void difftest_step(vaddr_t pc);
+void difftest_skip_ref();
 
 void cpu_init(const char *Vcd_file)
 {
   dut = new Vnpc;
-  m_trace = new VerilatedVcdC;
-  sim_time = 0;
   state = RUNNING;
-
   Verilated::traceEverOn(true);
-  dut->trace(m_trace, 12);
-  m_trace->open(Vcd_file);
   reset(10);
 }
 
 void cpu_deinit()
 {
-  m_trace->close();
-  delete m_trace;
+  DeinitWaveTrace();
   delete dut;
 }
 
 void single_cycle()
 {
   dut->clk = 0;
-  dut->eval();
-  if (sim_time < MAX_SIM_TIME)
-  {
-    m_trace->dump(sim_time);
-  }
-  sim_time++;
+  EvalAndWaveTrace(dut);
   dut->clk = 1;
-  dut->eval();
-  if (sim_time < MAX_SIM_TIME)
-  {
-    m_trace->dump(sim_time);
-  }
-  sim_time++;
+  EvalAndWaveTrace(dut);
 }
 
 void stop(int code, uint32_t pc)
@@ -87,7 +74,7 @@ void Cget_validW(char *validW)
   get_validW(validW);
 }
 
-uint32_t pc;
+uint32_t pc; 
 static uint32_t exec_once()
 {
   char validW;
@@ -99,6 +86,11 @@ static uint32_t exec_once()
     Cget_validW(&validW);
   } while (validW == 0);
   nr_inst++;
+
+  if(skip_difftest){
+    skip_difftest = 0;
+    difftest_skip_ref();
+  }
 
   Cget_pc_inst(&pc, NULL);
   // printf("pc=" FMT_WORD "\n", pc);

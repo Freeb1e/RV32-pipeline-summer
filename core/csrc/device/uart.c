@@ -18,6 +18,7 @@ uint32_t uart_read(paddr_t addr)
     switch (addr - UART_BASE)
     {
     case 0: // TX/RX寄存器
+        // printf("[UART] input\n");
         return (*p != '\0' ? *(p++) : -1);
         break;
 
@@ -41,8 +42,8 @@ void uart_write(paddr_t addr, uint32_t data)
     switch (addr - UART_BASE)
     {
     case 0:
-        putchar(byte_data);
-        fflush(stdout);
+        fputc(byte_data, stderr);
+        // printf("[UART] output\n");
         break;
 
     case 1:

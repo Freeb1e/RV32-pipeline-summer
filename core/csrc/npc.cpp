@@ -8,6 +8,7 @@ extern CPU_state state;
 extern VerilatedVcdC *m_trace;
 extern char *img_file;
 int is_deinit = 0;
+extern int cur_wave_idx;
 
 /* statistics */
 extern uint32_t nr_inst;
@@ -130,6 +131,7 @@ void statistics_display(){
     printf(ANSI_FMT("Statistics:", ANSI_COLOR_CYAN ANSI_BG_GREEN) "\n");
     printf("Instructions executed:%u\n", nr_inst);
     printf("Cycles: %u\n", nr_cycle);
+    printf("next wave file index: %d\n", cur_wave_idx);
     if(nr_cycle > 0) {
         printf("IPC: %.2f\n", (float)nr_inst / nr_cycle);
     }

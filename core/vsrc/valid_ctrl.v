@@ -41,7 +41,7 @@ module valid_ctrl(
         if (rst) begin
             valid_E_reg <= 1'b0;
         end else begin
-            if(Pre_Wrong & valid_E) begin
+            if(Pre_Wrong & valid_E & ready_M) begin
                 valid_E_reg <= 1'b0;
             end else if (ready_E) begin
                 valid_E_reg <= valid_D;
