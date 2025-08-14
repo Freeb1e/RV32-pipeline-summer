@@ -74,6 +74,12 @@ void Cget_validW(char *validW)
   get_validW(validW);
 }
 
+void Cget_CSR(int *csr_mtvec, int *csr_mstatus, int *csr_mepc, int *csr_mcause)
+{
+  svSetScope(svGetScopeFromName("TOP.npc.datapath1.u_CSR"));
+  get_CSR(csr_mtvec, csr_mstatus, csr_mepc, csr_mcause);
+}
+
 uint32_t pc; 
 static uint32_t exec_once()
 {
@@ -220,21 +226,45 @@ void reset(int n)
   dut->rst = 0;
 }
 
-void reg_display()
-{
-  int reg_data;
-  for (int i = 0; i < 32; i++)
-  {
-    Cget_reg(i, &reg_data);
-    printf("x%d: " FMT_WORD "\n", i, reg_data);
-  }
-}
-
 const char *regs[] = {
     "$0", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
     "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
     "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
     "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"};
+
+void reg_display()
+{
+  printf("\n======================== NPC Register Display ========================\n");
+  printf("%-4s %-10s  %-4s %-10s  %-4s %-10s  %-4s %-10s\n",
+         "Reg", "Value", "Reg", "Value", "Reg", "Value", "Reg", "Value");
+  printf("---- ----------  ---- ----------  ---- ----------  ---- ----------\n");
+
+  int reg_data;
+  for (int i = 0; i < 32; i += 4)
+  {
+    for (int j = 0; j < 4 && (i + j) < 32; j++)
+    {
+      int idx = i + j;
+      Cget_reg(idx, &reg_data);
+      printf("%-4s " FMT_WORD, regs[idx], reg_data);
+      if (j < 3 && (i + j + 1) < 32)
+        printf("  ");
+    }
+    printf("\n");
+  }
+
+  // Display PC separately
+  uint32_t pc;
+  int32_t mtvec, mcause, mepc, mstatus;
+  Cget_pc_inst(&pc, NULL);
+  Cget_CSR(&mtvec, &mcause, &mepc, &mstatus);
+  printf("\nPC:  " FMT_WORD "\n", pc);
+  printf("mtvec: " FMT_WORD "\n", mtvec);
+  printf("mcause: " FMT_WORD "\n", mcause);
+  printf("mepc: " FMT_WORD "\n", mepc);
+  printf("mstatus: " FMT_WORD "\n", mstatus);
+  printf("======================================================================\n\n");
+}
 
 uint32_t reg_str2val(const char *s)
 {
@@ -265,5 +295,6 @@ CPU_reg get_cpu_state()
     Cget_reg(i, (int *)&_this.gpr[i]);
   }
   Cget_pc_inst(&_this.pc, NULL);
+  Cget_CSR((int *)&_this.mtvec, (int *)&_this.mcause, (int *)&_this.mepc, (int *)&_this.mstatus);
   return _this;
 }

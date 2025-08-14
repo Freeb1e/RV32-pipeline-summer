@@ -22,10 +22,12 @@ module mulcu_decoder(
         output mulsign,
         `endif
         //--------CSR扩展-----------
-        output CSR_REG_WEN,
-        output reg [4:0] CSR_REG_ADDR,
-        output [2:0] csr_ctrl, 
+        output reg [11:0] csr_raddr,
+        output reg [11:0] csr_waddr,
+        output reg [1:0] csr_ctrl,
+        `ifdef HAS_ECALL
         output ecall,
+        `endif
         output mret,
         //--------------------------
         output [6:0] opcode
@@ -75,32 +77,25 @@ module mulcu_decoder(
     assign mem_wen=(opcode==`store)?1'b1:1'b0;
     assign mem_ren=(opcode==`load )?1'b1:1'b0;
 //-------------------------------CSR寄存器相关---------------------------------
-    assign CSR_REG_WEN=(csrrw|csrrs)?1'b1:1'b0; // CSRRW
-    //assign CSR_REG_ADDR=instr[31:20]; // 12位CSR寄存器地址
-    always@(*)begin
-        case(instr[31:20])
-            12'h305: CSR_REG_ADDR = 5'd1; // mtvec
-            12'h300: CSR_REG_ADDR = 5'd2; // mstatus
-            12'h341: CSR_REG_ADDR = 5'd3; // mepc
-            12'h342: CSR_REG_ADDR = 5'd4; // mcause
-            default: CSR_REG_ADDR = 5'd0; // 其它寄存器可自定义
-        endcase
-    end
-    wire csrrw;
+    wire csrrw, csrrs;
     assign csrrw=(opcode==`CSR_OPCODE && funct3==3'b001);
-    wire csrrs;
     assign csrrs=(opcode==`CSR_OPCODE && funct3==3'b010);
+    `ifdef HAS_ECALL
+    assign ecall=(opcode==`CSR_OPCODE && funct3==3'b000 && instr[31:20]==12'h000); 
+    `endif
+    assign mret=(opcode==`CSR_OPCODE && funct3==3'b000 && instr[31:20]==12'h302); 
+    
+    // mret会写入CSR
     always @(*) begin
-        if (csrrw|csrrs) begin
-            csr_ctrl = 3'b001; // CSRRW
-        end else if (csrrs) begin
-            csr_ctrl = 3'b010; // CSRRS
+        if (mret) begin
+            csr_raddr = 12'h341; // mepc
         end else begin
-            csr_ctrl = 3'b000; // 默认值
+            csr_raddr = instr[31:20];
         end
+        csr_waddr = instr[31:20];
     end
-    assign ecall=(opcode==`CSR_OPCODE && funct3==3'b000 && instr[31:20]==12'h000); // ecall指令
-    assign mret=(opcode==`CSR_OPCODE && funct3==3'b000 && instr[31:20]==12'h302); // mret指令
+
+    assign csr_ctrl = {csrrw, csrrs};
 //----------------------------------------------------------------------------
     //00:来自ALU 01:来自data 10:来自PC 11:来自imme
     always@(*) begin

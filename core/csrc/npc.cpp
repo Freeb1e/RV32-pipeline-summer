@@ -115,16 +115,12 @@ void initialize(int argc, char** argv){
 
 void deinitialize(){
     free_sdb();
-
     free_trace();
-
-    if(!is_deinit) cpu_deinit();
+    cpu_deinit();
 }
 
 void display_error_msg(){
     display_iringbuf();
-    cpu_deinit();
-    is_deinit = 1;
 }
 
 void statistics_display(){

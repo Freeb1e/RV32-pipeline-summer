@@ -12,13 +12,17 @@ enum CPU_state {
 };
 
 typedef struct {
-    uint32_t gpr[32];
-    uint32_t pc;
+    word_t gpr[32];
+    word_t pc;
+    word_t mtvec;
+    word_t mstatus;
+    word_t mcause;
+    word_t mepc;
 } CPU_reg;
 
 typedef struct {
-    uint32_t store_pc; // the pc of the instruction that stores this data
-    uint32_t store_data; // the data stored by the instruction
+    word_t store_pc; // the pc of the instruction that stores this data
+    word_t store_data; // the data stored by the instruction
 } memdiff_t;
 
 void cpu_init(const char* Vcd_file);

@@ -119,11 +119,14 @@ module datapath(
 `endif
 
     //CSR相关信号
-    wire CSR_REG_WEN_D, CSR_REG_WEN_E, CSR_REG_WEN_M, CSR_REG_WEN_W;
-    wire [4:0] CSR_REG_ADDR_D, CSR_REG_ADDR_E, CSR_REG_ADDR_M, CSR_REG_ADDR_W;
-    wire [2:0] csr_ctrl_D, csr_ctrl_E, csr_ctrl_M, csr_ctrl_W;
+    wire [11:0] csr_waddr_D, csr_waddr_E, csr_waddr_M, csr_waddr_W;
+    wire [11:0] csr_raddr_D;
+    wire [31:0] csr_rdata_D, csr_rdata_E, csr_rdata_M, csr_rdata_W;
+    wire [1:0] csr_ctrl_D, csr_ctrl_E, csr_ctrl_M, csr_ctrl_W;
+    `ifdef HAS_ECALL
     wire ecall_D, ecall_E;
-    wire mret_E,mret_D;
+    `endif
+    wire mret_D, mret_E;
 
     wire valid_F, valid_D, valid_E, valid_M, valid_W;
     wire ready_F, ready_D, ready_E, ready_M, ready_W;
@@ -204,12 +207,15 @@ module datapath(
                       .mulsign(mulsign_D),
 `endif
                       //--------CSR扩展-----------
-                      .CSR_REG_WEN(CSR_REG_WEN_D),
-                      .CSR_REG_ADDR(CSR_REG_ADDR_D),
+                      .csr_raddr(csr_raddr_D),
+                      .csr_waddr(csr_waddr_D),
                       .csr_ctrl(csr_ctrl_D),
-                      .opcode(opcode_D),
                       .mret(mret_D),
-                      .ecall(ecall_D)
+                      `ifdef HAS_ECALL
+                      .ecall(ecall_D),
+                      `endif
+                      //------------------------------
+                      .opcode(opcode_D)
                   );
 
     Imme_decoder u_Imme_decoder(
@@ -262,9 +268,9 @@ module datapath(
                       );
 
 
-    // 转发到ID阶段的源操作数
-    wire [31:0] src1, src2;
-    assign src1 = (valid_forward_rs1) ? forward_rs1 : rdata1_E;
+    // 转发到IE阶段的源操作数
+    wire [31:0] src1_E, src1_M, src1_W, src2;
+    assign src1_E = (valid_forward_rs1) ? forward_rs1 : rdata1_E;
     assign src2 = (valid_forward_rs2) ? forward_rs2 : rdata2_E;
 
 
@@ -292,17 +298,17 @@ module datapath(
 
     buffer_D_E u_buffer_D_E(
                    .clk          	(clk           ),
-                   .rst          	(rst        ),
+                   .rst          	(rst           ),
                    .valid_D      	(valid_D       ),
                    .ready_E      	(ready_E       ),
 
                    // 控制信号
                    .RegWrite_D   	(RegWrite_D    ),
-                   .ResultSrc_D  	(ResultSrc_D ),
+                   .ResultSrc_D  	(ResultSrc_D    ),
                    .MemWrite_D   	(MemWrite_D   ),
                    .MemRead_D    	(MemRead_D     ),
                    .jal_D       	(jal_D       ),
-                   .jalr_D     	(jalr_D      ),
+                   .jalr_D     	    (jalr_D      ),
                    .Branch_D     	(Branch_D    ),
                    .ALUControl_D 	(ALUControl_D  ),
                    .ALUSrc_D     	(ALU_DB_Src_D      ),
@@ -316,11 +322,7 @@ module datapath(
 `ifdef RV32M
                    .mulsign_D    	(mulsign_D     ),
 `endif
-                   .CSR_REG_WEN_D  (CSR_REG_WEN_D  ),
-                   .CSR_REG_ADDR_D (CSR_REG_ADDR_D ),
-                   .csr_ctrl_D(csr_ctrl_D),
-                   .ecall_D(ecall_D),
-                   .mret_D(mret_D),
+
                    // 数据
                    .PC_reg_D       (PC_reg_D        ),
                    .imme_D         (imme_D          ),
@@ -330,13 +332,22 @@ module datapath(
                    .Rs1_D          (Rs1_D           ),
                    .Rs2_D          (Rs2_D           ),
 
+                   // CSR相关输出
+                   .csr_waddr_D     (csr_waddr_D    ),
+                   .csr_rdata_D     (csr_rdata_D    ),
+                   .csr_ctrl_D      (csr_ctrl_D     ),
+                   `ifdef HAS_ECALL
+                   .ecall_D         (ecall_D       ),
+                   `endif
+                   .mret_D          (mret_D        ),
+
                    // 控制信号输出
                    .RegWrite_E   	(RegWrite_E    ),
                    .ResultSrc_E  	(ResultSrc_E   ),
                    .MemWrite_E   	(MemWrite_E    ),
                    .MemRead_E    	(MemRead_E     ),
                    .jal_E       	(jal_E        ),
-                   .jalr_E     	(jalr_E      ),
+                   .jalr_E     	    (jalr_E      ),
                    .Branch_E     	(Branch_E      ),
                    .ALUControl_E 	(ALUControl_E  ),
                    .ALUSrc_E     	(ALU_DB_Src_E      ),
@@ -350,11 +361,7 @@ module datapath(
 `ifdef RV32M
                    .mulsign_E    	(mulsign_E     ),
 `endif
-                   .CSR_REG_WEN_E  (CSR_REG_WEN_E  ),
-                   .CSR_REG_ADDR_E (CSR_REG_ADDR_E ),
-                   .csr_ctrl_E(csr_ctrl_E),
-                   .ecall_E(ecall_E),
-                   .mret_E(mret_E),
+
                    // 数据输出
                    .PC_reg_E       (PC_reg_E        ),
                    .imme_E         (imme_E          ),
@@ -362,7 +369,16 @@ module datapath(
                    .rdata2_E       (rdata2_E        ),
                    .Rd_E           (Rd_E            ),
                    .Rs1_E          (Rs1_E           ),
-                   .Rs2_E          (Rs2_E           )
+                   .Rs2_E          (Rs2_E           ),
+
+                   // CSR相关输出
+                   .csr_waddr_E     (csr_waddr_E    ),
+                   .csr_rdata_E     (csr_rdata_E    ),
+                   .csr_ctrl_E      (csr_ctrl_E     ),
+                   `ifdef HAS_ECALL
+                   .ecall_E         (ecall_E        ),
+                   `endif
+                   .mret_E          (mret_E         )
                );
 
     buffer_E_M u_buffer_E_M(
@@ -370,9 +386,7 @@ module datapath(
                    .rst            	(rst             ),
                    .valid_E        	(valid_E         ),
                    .ready_M        	(ready_M         ),
-                   .CSR_REG_WEN_E  (CSR_REG_WEN_E  ),
-                   .CSR_REG_ADDR_E (CSR_REG_ADDR_E ),
-                   .csr_ctrl_E(csr_ctrl_E),
+
                    // 控制信号输入
                    .RegWrite_E       (RegWrite_E      ),
                    .ResultSrc_E      (ResultSrc_E     ),
@@ -388,6 +402,12 @@ module datapath(
                    .Rd_E           	(Rd_E            ),
                    .PC_reg_E 	      (PC_reg_E        ),
                    .imme_E         	(imme_E          ),
+                   .src1_E          (src1_E          ),
+
+                   // CSR相关输入
+                   .csr_waddr_E     (csr_waddr_E    ),
+                   .csr_rdata_E     (csr_rdata_E    ),
+                   .csr_ctrl_E      (csr_ctrl_E     ),
 
                    // 控制信号输出
                    .RegWrite_M       (RegWrite_M      ),
@@ -397,15 +417,19 @@ module datapath(
                    .funct3_M         (funct3_M        ),
                    .ebreak_M         (ebreak_M        ),
                    .type_M           (type_M          ),
-                   .CSR_REG_WEN_M    (CSR_REG_WEN_M    ),
-                   .CSR_REG_ADDR_M   (CSR_REG_ADDR_M   ),
-                   .csr_ctrl_M(csr_ctrl_M),
+                   
                    // 数据输出
                    .ALUResult_M    	(ALUResult_M     ),
                    .WriteData_M    	(rdata2_M        ),
                    .Rd_M           	(Rd_M            ),
                    .PC_reg_M 	      (PC_reg_M        ),
-                   .imme_M         	(imme_M          )
+                   .imme_M         	(imme_M          ),
+                   .src1_M          (src1_M          ),
+
+                   // CSR相关输出
+                   .csr_waddr_M     (csr_waddr_M    ),
+                   .csr_rdata_M     (csr_rdata_M    ),
+                   .csr_ctrl_M      (csr_ctrl_M     )
                );
 
     buffer_M_W u_buffer_M_W(
@@ -413,9 +437,7 @@ module datapath(
                    .rst            	(rst    ),
                    .valid_M        	(valid_M         ),
                    .ready_W        	(ready_W         ),
-                   .CSR_REG_WEN_M    (CSR_REG_WEN_M    ),
-                   .CSR_REG_ADDR_M   (CSR_REG_ADDR_M   ),
-                   .csr_ctrl_M(csr_ctrl_M),
+
                    // 控制信号输入
                    .RegWrite_M       (RegWrite_M      ),
                    .ResultSrc_M      (ResultSrc_M     ),
@@ -429,6 +451,12 @@ module datapath(
                    .PC_reg_M 	      (PC_reg_M        ),
                    .Rd_M           	(Rd_M            ),
                    .imme_M         	(imme_M          ),
+                   .src1_M          (src1_M          ),
+
+                   // CSR相关输入
+                   .csr_waddr_M     (csr_waddr_M    ),
+                   .csr_rdata_M     (csr_rdata_M    ),
+                   .csr_ctrl_M      (csr_ctrl_M     ),
 
                    // 控制信号输出
                    .RegWrite_W       (RegWrite_W      ),
@@ -442,10 +470,13 @@ module datapath(
                    .ReadData_W    	  (rdata_W      ),
                    .Rd_W           	(Rd_W            ),
                    .PC_reg_W 	      (PC_reg_W        ),
-                   .CSR_REG_WEN_W    (CSR_REG_WEN_W    ),
-                   .CSR_REG_ADDR_W   (CSR_REG_ADDR_W   ),
-                   .csr_ctrl_W(csr_ctrl_W),
-                   .imme_W         	(imme_W          )
+                   .imme_W         	(imme_W          ),
+                   .src1_W         	(src1_W          ),
+
+                   // CSR相关输出
+                   .csr_waddr_W     (csr_waddr_W    ),
+                   .csr_rdata_W     (csr_rdata_W    ),
+                   .csr_ctrl_W      (csr_ctrl_W     )
                );
 
 
@@ -532,7 +563,11 @@ module datapath(
     wire predict_F;
     assign predict_F = btb_hit_F && predict_ctrl;
 
-    assign Pre_Wrong = (predict_E ^ Jump_sign)|ecall_E|mret_E; // 预测与实际不符或遇到ecall指令
+    assign Pre_Wrong    =   (predict_E ^ Jump_sign) | 
+    `ifdef HAS_ECALL
+                            ecall_E | 
+    `endif
+                            mret_E; 
 
     // 正常路径：预测正确时的PC选择
     // 当BTB命中且方向预测为跳转时，使用BTB预测的目标地址
@@ -541,12 +576,15 @@ module datapath(
     // 修正路径：预测错误时的PC选择
     wire [31:0] PC_next_E;
     assign PC_next_E = PC_reg_E + 32'd4; // 执行阶段PC+4
-    assign PC_correction_path =mret_E?mepc_out:(ecall_E?mtvec_out:(Jump_sign ? (jalr_E ? PC_jalr : PC_jump) : PC_next_E));
+    assign PC_correction_path   =   mret_E ? csr_rdata_E :
+    `ifdef HAS_ECALL
+                                    ecall_E ? mtvec_out :
+    `endif
+                                    Jump_sign ? (jalr_E ? PC_jalr : PC_jump) : 
+                                    PC_next_E;
 
-    // 最终PC选择
-    always@(*) begin
-        PC_src = Pre_Wrong_valid ? PC_correction_path : PC_predict_path;
-    end
+    assign PC_src = Pre_Wrong_valid ? PC_correction_path : PC_predict_path;
+
 `else
     assign PC_src=(Jump_sign)?((jalr_E)?PC_jalr:PC_jump):snpc;
     assign Pre_Wrong=Jump_sign; //不使用分支预测
@@ -554,7 +592,7 @@ module datapath(
 
 
     //-----------------EX stage----------------
-    assign ALU_DA=(reg_ren_E)?((auipc_E)? PC_reg_E:src1):32'b0;
+    assign ALU_DA=(reg_ren_E)?((auipc_E)? PC_reg_E:src1_E):32'b0;
     assign ALU_DB=(ALU_DB_Src_E)?src2:imme_E;
     ALU ALU1(
             .ALU_DA(ALU_DA),
@@ -600,26 +638,6 @@ module datapath(
     assign bgeu_true=(bgeu & ~ALUResult_E[0]);
     wire branch_true;
     assign branch_true=(beq_true | bne_true | blt_true | bge_true | bltu_true | bgeu_true);
-    reg [31:0] mstatus_val;
-    always@(*) begin
-        if (ecall_E) begin
-            exception_we = 1'b1;
-            epc_in = PC_reg_E;
-            cause_in = 32'd11;
-        end
-        else begin
-            exception_we = 1'b0;
-            epc_in = 32'b0;
-            cause_in = 32'b0;
-        end
-
-        if(mret_E) begin
-            mstatus_val = {mstatus_out[31:13], 2'b11, mstatus_out[10:8], 1'b1, mstatus_out[6:4], mstatus_out[7], mstatus_out[2:0]};
-
-        end
-        else
-            mstatus_val=mstatus_out;
-    end
 
     //-----------------load store stage----------------
     reg [31:0] rdata_M;
@@ -659,9 +677,13 @@ module datapath(
 
     //-----------------Write Back stage----------------
 
-    reg  [31:0] wdata;
+    reg  [31:0] wdata, wdata_raw;
+    reg [31:0] csr_wdata_W;
+    wire csr_wen_W;
+
     assign ebreak=ebreak_W;
     assign PC_W=PC_reg_W;
+
     RegisterFile u_RegisterFile(
 
 
@@ -677,32 +699,16 @@ module datapath(
                      .ren    	(reg_ren_D    )
                  );
 
-    // output declaration of module CSR
-    wire [31:0] csr_rdata;
-    reg [31:0] csr_wdata;
-    reg [31:0] epc_in, cause_in;
-    wire [31:0] mtvec_out,mepc_out,mstatus_out;
-    reg exception_we;
     CSR u_CSR(
             .clk       	(clk        ),
             .rst       	(rst        ),
-            .csr_we    	(CSR_REG_WEN_W     ),
-            .csr_addr  	(CSR_REG_ADDR_W   ),
-            .csr_wdata 	(csr_wdata  ),
-            .csr_rdata 	(csr_rdata  ),
-            .exception_we    (exception_we),
-            .mret_en   (mret_E),
-            .mstatus_in(mstatus_val),
-            .epc_in          (epc_in),
-            .cause_in        (cause_in),
-            .mtvec_out         (mtvec_out),
-            .mstatus_out      (mstatus_out), // mstatus寄存器的值
-            .mepc_out         (mepc_out)
+            .csr_we  	(csr_wen_W   ),
+            .csr_waddr 	(csr_waddr_W  ),
+            .csr_wdata 	(csr_wdata_W  ),
+            .csr_rdata 	(csr_rdata_D  ),
+            .csr_raddr 	(csr_raddr_D  )
         );
 
-
-
-    reg [31:0] wdata_raw;
     always @(*) begin
         case(ResultSrc_W)
             2'b01:
@@ -711,46 +717,20 @@ module datapath(
                 wdata_raw=ALUResult_W;
         endcase
     end
-    //增加一级选择：使用原来的Reg结果进行写回还是使用CSR寄存器的值
-    always@(*) begin
-        case(csr_ctrl_W)
-            3'b000: // CSR读
-                wdata=wdata_raw; // 默认使用ALU结果
-            3'b001: // CSRRW
-                wdata=csr_rdata; // 读CSR寄存器
-            3'b010: // CSRRS
-                wdata=csr_rdata; // 读CSR寄存器
-            default:
-                wdata=wdata_raw; // 默认使用ALU结果
-        endcase
-    end
-    //写回CSR寄存器堆
-    //旁路的rs1传递到WB阶段
-    reg [31:0] src1_M,src1_W;
-    always@(posedge clk) begin
-        if(rst) begin
-            src1_M<=32'b0;
-            src1_W<=32'b0;
-        end
+    always @(*) begin
+        if(csr_wen_W)
+            wdata = csr_rdata_W;
         else begin
-            if(valid_M & ready_M) begin
-                src1_M<=src1;
-            end
-            if(valid_W & ready_W) begin
-                src1_W<=src1_M;
-            end
+            wdata = wdata_raw;
         end
     end
     always @(*) begin
-        csr_wdata = 32'b0; // 默认值
         case(csr_ctrl_W)
-            3'b001: // CSRRW
-                csr_wdata = src1_W; // 写入rs1的值
-            3'b010: // CSRRS
-                csr_wdata = csr_rdata | src1_W; // 读出值与rs1按位或后写回
-            default:
-                csr_wdata = 32'b0; // 默认不写入CSR寄存器
+            2'b01: csr_wdata_W = csr_rdata_W;
+            2'b10: csr_wdata_W = csr_rdata_W | src1_W;
+            default: csr_wdata_W = 0;
         endcase
     end
+    assign csr_wen_W = |csr_ctrl_W;
 
 endmodule

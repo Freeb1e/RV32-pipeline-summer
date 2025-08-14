@@ -2,58 +2,83 @@
 module CSR (
     input  logic         clk,
     input  logic         rst,
-    input  logic         csr_we,        // CSR写使能
-    input  logic [4:0]   csr_addr,      // CSR地址（序号，0~31）
-    input  logic [31:0]  csr_wdata,     // CSR写数据
-    output logic [31:0]  csr_rdata,    // CSR读数据
-    input logic        exception_we,  // 异常写使能
-    input logic        mret_en,
-    input logic [31:0]  epc_in,        // 异常发生时的程序计数器
-    input logic [31:0]  cause_in,       // 异常原因
-    input logic [31:0]  mstatus_in,      // JALR指令的目标地址
-    output logic [31:0]  mtvec_out,      // CSR读数据
-    output logic [31:0]  mstatus_out,        // CSR读数据
-    output logic [31:0]  mepc_out        // CSR读数据
+    input  logic         csr_we,        
+    input  logic [11:0]   csr_waddr,      
+    input  logic [31:0]  csr_wdata,  
+
+    input  logic [11:0]   csr_raddr,
+    output logic [31:0]  csr_rdata
 );
+    localparam MTVEC_IDX   = 2'd0;
+    localparam MSTATUS_IDX = 2'd1;
+    localparam MEPC_IDX    = 2'd2;
+    localparam MCAUSE_IDX  = 2'd3;
 
-    // 例化32个CSR寄存器
-    logic [31:0] csr_regs [31:0];
+    localparam MTVEC_ADDR = 12'h305;
+    localparam MSTATUS_ADDR = 12'h300;
+    localparam MEPC_ADDR = 12'h341;
+    localparam MCAUSE_ADDR = 12'h342;
 
-    // 定义特殊寄存器序号
-    localparam MTVEC_IDX   = 5'd1;
-    localparam MSTATUS_IDX = 5'd2;
-    localparam MEPC_IDX    = 5'd3;
-    localparam MCAUSE_IDX  = 5'd4;
+    reg [31:0] mtvec, mstatus, mepc, mcause;
+    reg [1:0]  csr_ridx, csr_widx;
+    always_comb begin
+        case(csr_raddr)
+            MTVEC_ADDR: csr_ridx = MTVEC_IDX;
+            MSTATUS_ADDR: csr_ridx = MSTATUS_IDX;
+            MEPC_ADDR: csr_ridx = MEPC_IDX;
+            MCAUSE_ADDR: csr_ridx = MCAUSE_IDX;
+            default: csr_ridx = 2'd0;
+        endcase
+        case(csr_waddr)
+            MTVEC_ADDR: csr_widx = MTVEC_IDX;
+            MSTATUS_ADDR: csr_widx = MSTATUS_IDX;
+            MEPC_ADDR: csr_widx = MEPC_IDX;
+            MCAUSE_ADDR: csr_widx = MCAUSE_IDX;
+            default: csr_widx = 2'd0;
+        endcase
+    end
 
-    // 初始化和写操作
     always_ff @(posedge clk or posedge rst) begin
-        if (rst) begin
-            for (int i = 0; i < 32; i++) begin
-                csr_regs[i] <= 32'h0;
-            end
+        if(rst) begin
+            mtvec <= 32'h0000_0000;
+            mstatus <= 32'h0000_1800;
+            mepc <= 32'h0000_0000;
+            mcause <= 32'h0000_0000;
         end else begin
-            // CSR写操作
-            if (csr_we) begin
-                csr_regs[csr_addr] <= csr_wdata;
+            if(csr_we) begin
+                case(csr_widx)
+                    MTVEC_IDX: mtvec <= csr_wdata;
+                    MSTATUS_IDX: mstatus <= csr_wdata;
+                    MEPC_IDX: mepc <= csr_wdata;
+                    MCAUSE_IDX: mcause <= csr_wdata;
+                    default: ;
+                endcase
             end
-
-            if (exception_we) begin
-            csr_regs[MEPC_IDX]   <= epc_in;
-            csr_regs[MCAUSE_IDX] <= cause_in;
-
-            if(mret_en) begin
-                csr_regs[MTVEC_IDX] <= mstatus_in; // MRET指令时将MTVEC寄存器设置为MSTATUS寄存器的值
-            end 
-        end
         end
     end
 
     // CSR读操作
     always_comb begin
-        csr_rdata = csr_regs[csr_addr];
-        mtvec_out = csr_regs[MTVEC_IDX]; // 输出MEPC寄存器的值
-        mepc_out = csr_regs[MEPC_IDX];   // 输出MTVEC寄存器的值
-        mstatus_out = csr_regs[MSTATUS_IDX]; // 输出MSTATUS寄存器的值
+        case(csr_ridx)
+            MTVEC_IDX: csr_rdata = mtvec;
+            MSTATUS_IDX: csr_rdata = mstatus;
+            MEPC_IDX: csr_rdata = mepc;
+            MCAUSE_IDX: csr_rdata = mcause;
+            default: csr_rdata = 32'h0000_0000;
+        endcase
     end
 
+`ifdef SIMULATION
+    export "DPI-C" function get_CSR;
+    function void get_CSR();
+        output int csr_mtvec;
+        output int csr_mstatus;
+        output int csr_mepc;
+        output int csr_mcause;
+        csr_mtvec = mtvec;
+        csr_mstatus = mstatus;
+        csr_mepc = mepc;
+        csr_mcause = mcause;
+    endfunction
+`endif
 endmodule
