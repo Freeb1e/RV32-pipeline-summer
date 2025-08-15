@@ -48,18 +48,19 @@ Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
 }
 
 void yield() {
-  printf("yield\n");
 #ifdef __riscv_e
   asm volatile("li a5, 11; ecall");
 #else
   asm volatile(
       "auipc t0, 0;"     // 获取当前PC到t0
-      "addi t0, t0, 16;" // t0 = PC + 16 (跳过这段代码到返回点)
+      "addi t0, t0, 32;" // t0 = PC + 24 (跳过这段代码到返回点)
       "csrw mepc, t0;"   // 将返回地址保存到mepc
       "li t1, 11;"       // 设置异常号11
       "csrw mcause, t1;" // 写入mcause寄存器
       "csrr t2, mtvec;"  // 从mtvec读取异常入口地址
-      "jr t2"            // 跳转到异常处理入口
+      "nop;"             // TODO: 硬件处理CSR的RAW冒险
+      "nop;"
+      "jr t2" // 跳转到异常处理入口
       :
       :
       : "t0", "t1", "t2");
