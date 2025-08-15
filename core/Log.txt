@@ -1,0 +1,6 @@
+FTrace: [1m[31mOFF[0m
+Differential testing: [1m[32mON[0m
+The result of every instruction will be compared with /home/peanutbutter/RV32-pipeline-summer/core/tools/riscv32-nemu-interpreter-so. This will help you a lot for debugging, but also significantly reduce the performance. If it is not necessary, you can turn it off by deannotationize the #undef sentence in config.h.
+ITrace: [1m[32mON[0m
+MTrace: [1m[31mOFF[0m
+NPC: [1m[31mABORT[0m [34mat pc = 0x00000000

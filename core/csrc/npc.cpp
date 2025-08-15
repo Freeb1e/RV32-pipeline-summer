@@ -28,14 +28,14 @@ void init_disasm();
 void init_difftest(char *ref_so_file, long img_size, int port);
 /* trace */
 void display_iringbuf();
-
-
+void display_call_stack();
 
 char *elf_file = NULL;
 char *so_file = NULL;
 long img_size;
 
-void ebreak(){
+void ebreak()
+{
     int ret_code;
     uint32_t pc;
     Cget_reg(10, &ret_code);
@@ -43,56 +43,62 @@ void ebreak(){
     stop(ret_code, pc);
 }
 
-void parse_args(int argc, char** argv){
+void parse_args(int argc, char **argv)
+{
     static struct option long_options[] = {
         {"image", required_argument, 0, 'i'},
         {"batch", no_argument, 0, 'b'},
         {"elf", required_argument, 0, 'e'},
         {"diff", required_argument, 0, 'd'},
-        {0, 0, 0, 0}
-    };
+        {0, 0, 0, 0}};
     int o;
-    while((o = getopt_long(argc, argv, "i:be:d:", long_options, NULL)) != -1){
-        switch(o){
-            case 'i':
-                img_file = optarg;
-                break;
-            case 'b':
-                sdb_set_batch_mode();
-                break;
-            case 'e':
-                elf_file = optarg;
-                break;
-            case 'd':
-                so_file = optarg;
-                break;
-            default:
-                break;
+    while ((o = getopt_long(argc, argv, "i:be:d:", long_options, NULL)) != -1)
+    {
+        switch (o)
+        {
+        case 'i':
+            img_file = optarg;
+            break;
+        case 'b':
+            sdb_set_batch_mode();
+            break;
+        case 'e':
+            elf_file = optarg;
+            break;
+        case 'd':
+            so_file = optarg;
+            break;
+        default:
+            break;
         }
     }
 }
 
-static void welcome(){
+static void welcome()
+{
 
-    #ifdef CONFIG_ITRACE
+#ifdef CONFIG_ITRACE
     Log("ITrace: %s", ANSI_FMT("ON", ANSI_COLOR_GREEN));
-    #else
+#else
     Log("ITrace: %s", ANSI_FMT("OFF", ANSI_COLOR_RED));
-    #endif
+#endif
 
-    #ifdef CONFIG_MTRACE
+#ifdef CONFIG_MTRACE
     Log("MTrace: %s", ANSI_FMT("ON", ANSI_COLOR_GREEN));
-    #else
+#else
     Log("MTrace: %s", ANSI_FMT("OFF", ANSI_COLOR_RED));
-    #endif
+#endif
 
     printf("Welcome to %s-NPC!\n", ANSI_FMT("riscv32", ANSI_COLOR_YELLOW ANSI_BG_RED));
     printf("For help, type \"help\"\n");
-
 }
 
-void initialize(int argc, char** argv){
+void initialize(int argc, char **argv)
+{
     parse_args(argc, argv);
+
+    // 初始化日志系统
+    log_init("Log.txt", LOG_TO_CONSOLE);
 
     cpu_init("npc.vcd");
 
@@ -113,27 +119,33 @@ void initialize(int argc, char** argv){
     state = RUNNING;
 }
 
-void deinitialize(){
+void deinitialize()
+{
     free_sdb();
     free_trace();
     cpu_deinit();
+    log_close(); // 关闭日志文件
 }
 
-void display_error_msg(){
+void display_error_msg()
+{
     display_iringbuf();
 }
 
-void statistics_display(){
+void statistics_display()
+{
     printf(ANSI_FMT("Statistics:", ANSI_COLOR_CYAN ANSI_BG_GREEN) "\n");
     printf("Instructions executed:%u\n", nr_inst);
     printf("Cycles: %u\n", nr_cycle);
     printf("next wave file index: %d\n", cur_wave_idx);
-    if(nr_cycle > 0) {
+    if (nr_cycle > 0)
+    {
         printf("IPC: %.2f\n", (float)nr_inst / nr_cycle);
     }
 }
 
-int main(int argc, char** argv){
+int main(int argc, char **argv)
+{
 
     initialize(argc, argv);
 
@@ -141,12 +153,13 @@ int main(int argc, char** argv){
 
     deinitialize();
 
-    switch (state) {
-        case ABORT:
+    switch (state)
+    {
+    case ABORT:
         printf("Execution aborted\n");
-            return 1;
-        default:
-            return 0;
+        return 1;
+    default:
+        return 0;
     }
     return 0;
 }

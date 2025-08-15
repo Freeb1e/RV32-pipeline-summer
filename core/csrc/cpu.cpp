@@ -257,7 +257,7 @@ void reg_display()
   uint32_t pc;
   int32_t mtvec, mcause, mepc, mstatus;
   Cget_pc_inst(&pc, NULL);
-  Cget_CSR(&mtvec, &mcause, &mepc, &mstatus);
+  Cget_CSR(&mtvec, &mstatus, &mepc, &mcause);
   printf("\nPC:  " FMT_WORD "\n", pc);
   printf("mtvec: " FMT_WORD "\n", mtvec);
   printf("mcause: " FMT_WORD "\n", mcause);

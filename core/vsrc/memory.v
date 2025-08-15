@@ -16,10 +16,13 @@ module memory
 
     always @(*) begin
         if (valid) begin // read or write is requested
-            rdata = pmem_read(raddr, IS_IF);
             if (wen) begin // write is requested
                 // $display("addr: %h", waddr);
                 pmem_write(waddr, wdata, wmask, IS_IF);
+                rdata = 0;
+            end
+            else begin
+                rdata = pmem_read(raddr, IS_IF);
             end
         end
         else begin

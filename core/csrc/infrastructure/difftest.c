@@ -62,8 +62,8 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
 }
 
 void difftest_skip_ref(){
-  skip_ref <<= 1;
-  skip_ref |= 1;
+  skip_ref = skip_ref << 1;
+  skip_ref = skip_ref | 1;
 }
 
 bool difftest_checkregs(CPU_reg *ref_r, vaddr_t pc) {

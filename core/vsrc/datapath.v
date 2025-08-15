@@ -726,8 +726,8 @@ module datapath(
     end
     always @(*) begin
         case(csr_ctrl_W)
-            2'b01: csr_wdata_W = csr_rdata_W;
-            2'b10: csr_wdata_W = csr_rdata_W | src1_W;
+            2'b01: csr_wdata_W = src1_W | csr_rdata_W; // csrrs
+            2'b10: csr_wdata_W = src1_W; // csrrw
             default: csr_wdata_W = 0;
         endcase
     end

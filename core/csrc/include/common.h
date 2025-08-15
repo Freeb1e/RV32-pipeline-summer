@@ -13,24 +13,24 @@
 #include "Vnpc___024root.h"
 #include "Vnpc__Dpi.h"
 
-#define ANSI_BOLD          "\x1b[1m"
-#define ANSI_DIM           "\x1b[2m"
-#define ANSI_ITALLIC       "\x1b[3m"
-#define ANSI_UNDERLINE     "\x1b[4m"
-#define ANSI_DASHED        "\x1b[9m"
-#define ANSI_COLOR_RED     "\x1b[31m"
-#define ANSI_COLOR_GREEN   "\x1b[32m"
-#define ANSI_COLOR_YELLOW  "\x1b[33m"
-#define ANSI_COLOR_BLUE    "\x1b[34m"
+#define ANSI_BOLD "\x1b[1m"
+#define ANSI_DIM "\x1b[2m"
+#define ANSI_ITALLIC "\x1b[3m"
+#define ANSI_UNDERLINE "\x1b[4m"
+#define ANSI_DASHED "\x1b[9m"
+#define ANSI_COLOR_RED "\x1b[31m"
+#define ANSI_COLOR_GREEN "\x1b[32m"
+#define ANSI_COLOR_YELLOW "\x1b[33m"
+#define ANSI_COLOR_BLUE "\x1b[34m"
 #define ANSI_COLOR_MAGENTA "\x1b[35m"
-#define ANSI_COLOR_CYAN    "\x1b[36m"
-#define ANSI_BG_RED        "\x1b[41m"
-#define ANSI_BG_GREEN      "\x1b[42m"
-#define ANSI_BG_YELLOW     "\x1b[43m"
-#define ANSI_BG_BLUE       "\x1b[44m"
-#define ANSI_BG_MAGENTA    "\x1b[45m"
-#define ANSI_BG_CYAN       "\x1b[46m"
-#define ANSI_COLOR_RESET   "\x1b[0m"
+#define ANSI_COLOR_CYAN "\x1b[36m"
+#define ANSI_BG_RED "\x1b[41m"
+#define ANSI_BG_GREEN "\x1b[42m"
+#define ANSI_BG_YELLOW "\x1b[43m"
+#define ANSI_BG_BLUE "\x1b[44m"
+#define ANSI_BG_MAGENTA "\x1b[45m"
+#define ANSI_BG_CYAN "\x1b[46m"
+#define ANSI_COLOR_RESET "\x1b[0m"
 
 #define concat_temp(x, y) x##y
 #define concat(x, y) concat_temp(x, y)
@@ -50,24 +50,42 @@ typedef uint32_t word_t;
 void display_error_msg();
 void statistics_display();
 
+// 日志相关函数声明
+void log_init(const char *filename, bool enable_console_output);
+void log_close();
+extern FILE *log_file;
+extern bool log_to_console;
+
 #define ARRLEN(A) (sizeof(A) / sizeof(A[0]))
 
-#define Assert(cond, format, ...) \
-  do { \
-    if (!(cond)) { \
-      fprintf(stderr, ANSI_BOLD ANSI_COLOR_RED format ANSI_COLOR_RESET __VA_OPT__(,) __VA_ARGS__); \
-      display_error_msg(); \
-      assert(0); \
-    } \
+#define Assert(cond, format, ...)                                                                   \
+  do                                                                                                \
+  {                                                                                                 \
+    if (!(cond))                                                                                    \
+    {                                                                                               \
+      fprintf(stderr, ANSI_BOLD ANSI_COLOR_RED format ANSI_COLOR_RESET __VA_OPT__(, ) __VA_ARGS__); \
+      display_error_msg();                                                                          \
+      assert(0);                                                                                    \
+    }                                                                                               \
   } while (0)
 
-#define Log(format, ...) \
-  do { \
-    printf(ANSI_COLOR_BLUE format "\n" ANSI_COLOR_RESET, ## __VA_ARGS__); \
+#define Log(format, ...)                                                   \
+  do                                                                       \
+  {                                                                        \
+    if (log_file)                                                          \
+    {                                                                      \
+      fprintf(log_file, format "\n", ##__VA_ARGS__);                       \
+      fflush(log_file);                                                    \
+    }                                                                      \
+    if (log_to_console)                                                    \
+    {                                                                      \
+      printf(ANSI_COLOR_BLUE format "\n" ANSI_COLOR_RESET, ##__VA_ARGS__); \
+    }                                                                      \
   } while (0)
 
-#define panic(format, ...) \
-  do { \
+#define panic(format, ...)          \
+  do                                \
+  {                                 \
     Assert(0, format, __VA_ARGS__); \
   } while (0)
 

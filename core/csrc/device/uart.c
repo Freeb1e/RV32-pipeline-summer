@@ -13,13 +13,14 @@ static int rx_count = 0;
 uint32_t uart_read(paddr_t addr)
 {
     uint32_t result = 0;
-    static const char *p = "help\ndate\nversion\nfree\nps\npwd\nls\nmemtrace\nmemcheck\nutest_list\n";
+    // static const char *p = "help\ndate\nversion\nfree\nps\npwd\nls\nmemtrace\nmemcheck\nutest_list\n";
 
     switch (addr - UART_BASE)
     {
     case 0: // TX/RX寄存器
         // printf("[UART] input\n");
-        return (*p != '\0' ? *(p++) : -1);
+        // return (*p != '\0' ? *(p++) : -1);
+        return getchar();
         break;
 
     case 1:

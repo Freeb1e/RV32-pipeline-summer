@@ -191,6 +191,7 @@ module buffer_D_E(
 `endif
 
             csr_waddr_E <= csr_waddr_D;
+            csr_rdata_E <= csr_rdata_D;
             csr_ctrl_E <= csr_ctrl_D;
             `ifdef HAS_ECALL
             ecall_E <= ecall_D;
