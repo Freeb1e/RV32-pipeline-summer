@@ -6,5 +6,5 @@
 `define rise
 `define RAMBUFFER
 `define PERFORMACE_COUNTER
-`define RV32M
+//`define RV32M
 // `define HAS_ECALL

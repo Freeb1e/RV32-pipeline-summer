@@ -22,8 +22,7 @@ module myCPU(
         output wire perip_wen,
         output wire [1:0] perip_mask,
         output wire [31:0] perip_wdata,
-        input wire [31:0] perip_rdata,
-        output wire uart_txd
+        input wire [31:0] perip_rdata
 `endif
     );
 
@@ -65,8 +64,8 @@ module myCPU(
         .ALUResult_E(ALU_DC),
         .PC_reg_F(PC_reg),
         .wmask(perip_mask),
-        .ReadData_M_valid(ReadData_M_valid), // 增加该信号
-        .uart_txd(uart_txd)
+        .ReadData_M_valid(ReadData_M_valid)
+
     );
     reg ReadData_M_valid_reg;
     always @(posedge clk) begin
@@ -275,8 +274,7 @@ module datapath_wrapper(
     output MemRead_M,
     output reg [1:0] wmask,
     output reg [31:0] ALUResult_E,
-    output [31:0] PC_reg_F,
-    output uart_txd
+    output [31:0] PC_reg_F
 );
 
     wire [3:0] data_axi_wstrb;
@@ -309,23 +307,6 @@ module datapath_wrapper(
         .data_axi_bready  	(   )
     );
 
-    reg uart_txd;
-    reg tx_done;
-    wire fifo_full;
-    
-    uart_tx_fifo #(
-        .SYS_CLK_FRE 	(50_000_000  ),
-        .BPS         	(25000000    ))
-    u_uart_tx_fifo(
-        .sys_clk         	(clk          ),
-        .sys_rst_n       	(~rst        ),
-        .cpu_addr        	(mem_addr         ),
-        .cpu_wr_en_buf   	(MemWrite_M    ),
-        .cpu_wr_data_buf 	(mem_data_out[7:0]  ),
-        .uart_txd        	(uart_txd         ),
-        .tx_done         	(tx_done          ),
-        .fifo_full       	(fifo_full        )
-    );
     always @(*) begin
         case (data_axi_wstrb)
             4'b0001: wmask = 2'b00; // Byte
